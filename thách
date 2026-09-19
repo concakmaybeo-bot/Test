@@ -28,7 +28,6 @@ end
 
 local sound = getOrCreateSound()
 
--- Đảm bảo khi nhân vật chết và hồi sinh, âm thanh không bị mất
 player.CharacterAdded:Connect(function(newChar)
     character = newChar
     humanoidRootPart = newChar:WaitForChild("HumanoidRootPart")
@@ -140,7 +139,7 @@ local function createBoomboxGUI()
     screenGui.DisplayOrder = 999
     screenGui.Parent = playerGui
 
-    -- 1. Watermark hiển thị khi người khác vừa nhập script vào
+    -- 1. Watermark hiển thị khi nhập script
     local watermark = Instance.new("TextLabel")
     watermark.Name = "Watermark"
     watermark.Size = UDim2.new(0, 220, 0, 24)
@@ -150,14 +149,14 @@ local function createBoomboxGUI()
     watermark.TextColor3 = Color3.fromRGB(0, 220, 255)
     watermark.TextSize = 12
     watermark.Font = Enum.Font.GothamBold
-    watermark.Text = "🌟source by mango"
+    watermark.Text = "🔥 Boombox Script Loaded!"
     watermark.Parent = screenGui
 
     local wmCorner = Instance.new("UICorner")
     wmCorner.CornerRadius = UDim.new(0, 6)
     wmCorner.Parent = watermark
 
-    -- 2. Toggle Button tối giản
+    -- 2. Toggle Button
     local toggleButton = Instance.new("ImageButton")
     toggleButton.Name = "ToggleButton"
     toggleButton.Size = UDim2.new(0, 48, 0, 48)
@@ -178,12 +177,13 @@ local function createBoomboxGUI()
 
     makeDraggable(toggleButton)
 
-    -- 3. Menu chính
+    -- 3. Menu chính (Trong suốt thấy rõ game phía sau)
     local frame = Instance.new("Frame")
     frame.Name = "MenuFrame"
     frame.Size = UDim2.new(0, 260, 0, 360)
     frame.Position = UDim2.new(0.5, -130, 0.5, -180)
-    frame.BackgroundColor3 = Color3.fromRGB(10, 10, 15)
+    frame.BackgroundColor3 = Color3.fromRGB(15, 15, 25)
+    frame.BackgroundTransparency = 0.4 -- Độ trong suốt hoàn hảo để thấy ảnh nền game
     frame.BorderSizePixel = 0
     frame.Visible = true
     frame.Parent = screenGui
@@ -193,30 +193,31 @@ local function createBoomboxGUI()
     corner.Parent = frame
 
     local frameStroke = Instance.new("UIStroke")
-    frameStroke.Color = Color3.fromRGB(0, 130, 255)
+    frameStroke.Color = Color3.fromRGB(0, 160, 255)
     frameStroke.Thickness = 2
     frameStroke.Parent = frame
 
-    makeDraggable(frame)
+    -- Hiệu ứng chuyển màu gradient nhẹ nhàng cho nền menu
+    local uigradient = Instance.new("UIGradient")
+    uigradient.Color = ColorSequence.new({
+        ColorSequenceKeypoint.new(0, Color3.fromRGB(30, 30, 45)),
+        ColorSequenceKeypoint.new(1, Color3.fromRGB(10, 10, 15))
+    })
+    uigradient.Rotation = 45
+    uigradient.Parent = frame
 
-    -- Icon trang trí phía trên menu
-    local circleArt = Instance.new("ImageLabel")
-    circleArt.Name = "CircleArt"
-    circleArt.Size = UDim2.new(0, 45, 0, 45)
-    circleArt.Position = UDim2.new(0.5, -22.5, 0.02, 0)
-    circleArt.BackgroundTransparency = 1
-    circleArt.Image = "rbxassetid://6023426915"
-    circleArt.Parent = frame
+    makeDraggable(frame)
 
     -- Ô nhập ID nhạc
     local textBox = Instance.new("TextBox")
     textBox.Size = UDim2.new(0, 220, 0, 28)
-    textBox.Position = UDim2.new(0.5, -110, 0.22, 0)
+    textBox.Position = UDim2.new(0.5, -110, 0.15, 0)
     textBox.PlaceholderText = "Nhập ID Audio Roblox..."
     textBox.Text = ""
     textBox.TextColor3 = Color3.fromRGB(255, 255, 255)
-    textBox.PlaceholderColor3 = Color3.fromRGB(150, 150, 150)
+    textBox.PlaceholderColor3 = Color3.fromRGB(180, 180, 180)
     textBox.BackgroundColor3 = Color3.fromRGB(20, 25, 40)
+    textBox.BackgroundTransparency = 0.3
     textBox.TextSize = 12
     textBox.Parent = frame
 
@@ -226,9 +227,10 @@ local function createBoomboxGUI()
 
     -- ScrollingFrame chứa danh sách ID đã lưu
     local scrollingFrame = Instance.new("ScrollingFrame")
-    scrollingFrame.Size = UDim2.new(0, 220, 0, 75)
-    scrollingFrame.Position = UDim2.new(0.5, -110, 0.32, 0)
+    scrollingFrame.Size = UDim2.new(0, 220, 0, 85)
+    scrollingFrame.Position = UDim2.new(0.5, -110, 0.25, 0)
     scrollingFrame.BackgroundColor3 = Color3.fromRGB(15, 18, 28)
+    scrollingFrame.BackgroundTransparency = 0.4
     scrollingFrame.BorderSizePixel = 0
     scrollingFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
     scrollingFrame.ScrollBarThickness = 3
@@ -262,6 +264,7 @@ local function createBoomboxGUI()
             local btn = Instance.new("TextButton")
             btn.Size = UDim2.new(0, 185, 1, 0)
             btn.BackgroundColor3 = Color3.fromRGB(30, 35, 55)
+            btn.BackgroundTransparency = 0.2
             btn.Text = "⏳ Đang tải tên..."
             btn.TextColor3 = Color3.fromRGB(220, 220, 220)
             btn.TextSize = 11
@@ -283,6 +286,7 @@ local function createBoomboxGUI()
             deleteBtn.Size = UDim2.new(0, 24, 1, 0)
             deleteBtn.Position = UDim2.new(1, -24, 0, 0)
             deleteBtn.BackgroundColor3 = Color3.fromRGB(160, 40, 40)
+            deleteBtn.BackgroundTransparency = 0.1
             deleteBtn.Text = "X"
             deleteBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
             deleteBtn.TextSize = 10
@@ -308,14 +312,14 @@ local function createBoomboxGUI()
 
     -- --- CÁC NÚT ĐIỀU KHIỂN ---
 
-    -- 1. Nút Phát & Dừng
     local playButton = Instance.new("TextButton")
     playButton.Size = UDim2.new(0, 105, 0, 30)
-    playButton.Position = UDim2.new(0.09, 0, 0.55, 0)
+    playButton.Position = UDim2.new(0.09, 0, 0.53, 0)
     playButton.Text = "PHÁT & LƯU"
     playButton.Font = Enum.Font.GothamBold
     playButton.TextColor3 = Color3.fromRGB(255, 255, 255)
     playButton.BackgroundColor3 = Color3.fromRGB(0, 140, 255)
+    playButton.BackgroundTransparency = 0.2
     playButton.TextSize = 11
     playButton.Parent = frame
 
@@ -325,11 +329,12 @@ local function createBoomboxGUI()
 
     local stopButton = Instance.new("TextButton")
     stopButton.Size = UDim2.new(0, 105, 0, 30)
-    stopButton.Position = UDim2.new(0.53, 0, 0.55, 0)
+    stopButton.Position = UDim2.new(0.53, 0, 0.53, 0)
     stopButton.Text = "DỪNG"
     stopButton.Font = Enum.Font.GothamBold
     stopButton.TextColor3 = Color3.fromRGB(255, 255, 255)
     stopButton.BackgroundColor3 = Color3.fromRGB(200, 40, 40)
+    stopButton.BackgroundTransparency = 0.2
     stopButton.TextSize = 11
     stopButton.Parent = frame
 
@@ -337,14 +342,14 @@ local function createBoomboxGUI()
     btnCorner2.CornerRadius = UDim.new(0, 6)
     btnCorner2.Parent = stopButton
 
-    -- 2. Nút Tua (-5s / +5s)
     local rewindButton = Instance.new("TextButton")
     rewindButton.Size = UDim2.new(0, 105, 0, 28)
-    rewindButton.Position = UDim2.new(0.09, 0, 0.65, 0)
+    rewindButton.Position = UDim2.new(0.09, 0, 0.63, 0)
     rewindButton.Text = "⏪ Tua -5s"
     rewindButton.Font = Enum.Font.GothamBold
     rewindButton.TextColor3 = Color3.fromRGB(255, 255, 255)
     rewindButton.BackgroundColor3 = Color3.fromRGB(70, 70, 90)
+    rewindButton.BackgroundTransparency = 0.2
     rewindButton.TextSize = 11
     rewindButton.Parent = frame
 
@@ -354,11 +359,12 @@ local function createBoomboxGUI()
 
     local forwardButton = Instance.new("TextButton")
     forwardButton.Size = UDim2.new(0, 105, 0, 28)
-    forwardButton.Position = UDim2.new(0.53, 0, 0.65, 0)
+    forwardButton.Position = UDim2.new(0.53, 0, 0.63, 0)
     forwardButton.Text = "Tua +5s ⏩"
     forwardButton.Font = Enum.Font.GothamBold
     forwardButton.TextColor3 = Color3.fromRGB(255, 255, 255)
     forwardButton.BackgroundColor3 = Color3.fromRGB(70, 70, 90)
+    forwardButton.BackgroundTransparency = 0.2
     forwardButton.TextSize = 11
     forwardButton.Parent = frame
 
@@ -366,14 +372,14 @@ local function createBoomboxGUI()
     fwCorner.CornerRadius = UDim.new(0, 6)
     fwCorner.Parent = forwardButton
 
-    -- 3. Nút Lặp & Tốc độ
     local loopButton = Instance.new("TextButton")
     loopButton.Size = UDim2.new(0, 105, 0, 28)
-    loopButton.Position = UDim2.new(0.09, 0, 0.75, 0)
+    loopButton.Position = UDim2.new(0.09, 0, 0.73, 0)
     loopButton.Text = "🔁 Lặp: TẮT"
     loopButton.Font = Enum.Font.GothamBold
     loopButton.TextColor3 = Color3.fromRGB(255, 255, 255)
     loopButton.BackgroundColor3 = Color3.fromRGB(90, 50, 120)
+    loopButton.BackgroundTransparency = 0.2
     loopButton.TextSize = 11
     loopButton.Parent = frame
 
@@ -383,11 +389,12 @@ local function createBoomboxGUI()
 
     local speedButton = Instance.new("TextButton")
     speedButton.Size = UDim2.new(0, 105, 0, 28)
-    speedButton.Position = UDim2.new(0.53, 0, 0.75, 0)
+    speedButton.Position = UDim2.new(0.53, 0, 0.73, 0)
     speedButton.Text = "⚡ Tốc độ: 1.0x"
     speedButton.Font = Enum.Font.GothamBold
     speedButton.TextColor3 = Color3.fromRGB(255, 255, 255)
     speedButton.BackgroundColor3 = Color3.fromRGB(90, 50, 120)
+    speedButton.BackgroundTransparency = 0.2
     speedButton.TextSize = 11
     speedButton.Parent = frame
 
@@ -395,14 +402,14 @@ local function createBoomboxGUI()
     spdCorner.CornerRadius = UDim.new(0, 6)
     spdCorner.Parent = speedButton
 
-    -- 4. Điều chỉnh Âm lượng (ĐÃ SỬA RÕ RÀNG: GIẢM TIẾNG VÀ TĂNG TIẾNG)
     local volDownBtn = Instance.new("TextButton")
     volDownBtn.Size = UDim2.new(0, 105, 0, 28)
-    volDownBtn.Position = UDim2.new(0.09, 0, 0.85, 0)
+    volDownBtn.Position = UDim2.new(0.09, 0, 0.83, 0)
     volDownBtn.Text = "🔉 Giảm tiếng (-)"
     volDownBtn.Font = Enum.Font.GothamBold
     volDownBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
     volDownBtn.BackgroundColor3 = Color3.fromRGB(160, 80, 40)
+    volDownBtn.BackgroundTransparency = 0.2
     volDownBtn.TextSize = 11
     volDownBtn.Parent = frame
 
@@ -412,11 +419,12 @@ local function createBoomboxGUI()
 
     local volUpBtn = Instance.new("TextButton")
     volUpBtn.Size = UDim2.new(0, 105, 0, 28)
-    volUpBtn.Position = UDim2.new(0.53, 0, 0.85, 0)
+    volUpBtn.Position = UDim2.new(0.53, 0, 0.83, 0)
     volUpBtn.Text = "🔊 Tăng tiếng (+)"
     volUpBtn.Font = Enum.Font.GothamBold
     volUpBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
     volUpBtn.BackgroundColor3 = Color3.fromRGB(40, 120, 80)
+    volUpBtn.BackgroundTransparency = 0.2
     volUpBtn.TextSize = 11
     volUpBtn.Parent = frame
 
