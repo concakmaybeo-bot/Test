@@ -150,7 +150,7 @@ local function createBoomboxGUI()
     watermark.TextColor3 = Color3.fromRGB(0, 220, 255)
     watermark.TextSize = 12
     watermark.Font = Enum.Font.GothamBold
-    watermark.Text = "🔥 Boombox Script Loaded!"
+    watermark.Text = "🌟source by mango"
     watermark.Parent = screenGui
 
     local wmCorner = Instance.new("UICorner")
