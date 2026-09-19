@@ -4,11 +4,14 @@ local RunService = game:GetService("RunService")
 local HttpService = game:GetService("HttpService")
 local UserInputService = game:GetService("UserInputService")
 local MarketplaceService = game:GetService("MarketplaceService")
+local CoreGui = game:GetService("CoreGui")
+local VirtualUser = game:GetService("VirtualUser")
 
 local player = Players.LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
 local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
 
+-- Khởi tạo Sound phát nhạc trên Client (Giữ nguyên khi chết/respawn)
 local function getOrCreateSound()
     local char = player.Character or player.CharacterAdded:Wait()
     local rootPart = char:WaitForChild("HumanoidRootPart")
@@ -33,6 +36,7 @@ player.CharacterAdded:Connect(function(newChar)
     sound = getOrCreateSound()
 end)
 
+-- Hệ thống Lưu/Xóa ID nhạc qua file JSON
 local fileName = "BoomboxSavedIDs.json"
 
 local function loadSavedIDs()
@@ -77,6 +81,7 @@ local function removeID(idToRemove)
     end
 end
 
+-- Hàm lấy tên bài hát tự động từ Roblox Marketplace
 local function getSongName(id)
     local success, info = pcall(function()
         return MarketplaceService:GetProductInfo(id)
@@ -87,6 +92,7 @@ local function getSongName(id)
     return "Không rõ tên (" .. tostring(id) .. ")"
 end
 
+-- Hàm hỗ trợ kéo thả (Draggable) cho UI
 local function makeDraggable(guiObject)
     local dragging, dragInput, dragStart, startPos
 
@@ -123,6 +129,7 @@ local function makeDraggable(guiObject)
     end)
 end
 
+-- Tạo Giao Diện Tổng Hợp
 local function createBoomboxGUI()
     local playerGui = player:WaitForChild("PlayerGui")
     local screenGui = playerGui:FindFirstChild("BoomboxGUI")
@@ -134,22 +141,24 @@ local function createBoomboxGUI()
     screenGui.DisplayOrder = 999
     screenGui.Parent = playerGui
 
+    -- 1. Watermark hiển thị
     local watermark = Instance.new("TextLabel")
     watermark.Name = "Watermark"
-    watermark.Size = UDim2.new(0, 220, 0, 24)
+    watermark.Size = UDim2.new(0, 240, 0, 24)
     watermark.Position = UDim2.new(0.01, 0, 0.01, 0)
     watermark.BackgroundColor3 = Color3.fromRGB(15, 15, 25)
     watermark.BackgroundTransparency = 0.4
     watermark.TextColor3 = Color3.fromRGB(0, 220, 255)
     watermark.TextSize = 12
     watermark.Font = Enum.Font.GothamBold
-    watermark.Text = "🌟 source by mango"
+    watermark.Text = "🔥 Main & Boombox Loaded!"
     watermark.Parent = screenGui
 
     local wmCorner = Instance.new("UICorner")
     wmCorner.CornerRadius = UDim.new(0, 6)
     wmCorner.Parent = watermark
 
+    -- 2. Toggle Button
     local toggleButton = Instance.new("ImageButton")
     toggleButton.Name = "ToggleButton"
     toggleButton.Size = UDim2.new(0, 48, 0, 48)
@@ -170,10 +179,11 @@ local function createBoomboxGUI()
 
     makeDraggable(toggleButton)
 
+    -- 3. Menu chính (3 Tab: Main, Boombox, Hub)
     local frame = Instance.new("Frame")
     frame.Name = "MenuFrame"
-    frame.Size = UDim2.new(0, 260, 0, 380)
-    frame.Position = UDim2.new(0.5, -130, 0.5, -190)
+    frame.Size = UDim2.new(0, 260, 0, 390)
+    frame.Position = UDim2.new(0.5, -130, 0.5, -195)
     frame.BackgroundColor3 = Color3.fromRGB(15, 15, 25)
     frame.BackgroundTransparency = 0.4 
     frame.BorderSizePixel = 0
@@ -199,79 +209,169 @@ local function createBoomboxGUI()
 
     makeDraggable(frame)
 
+    -- --- THANH CHUYỂN ĐỔI 3 TAB (MAIN, BOOMBOX, HUB) ---
     local tabHolder = Instance.new("Frame")
     tabHolder.Size = UDim2.new(0, 240, 0, 32)
     tabHolder.Position = UDim2.new(0.5, -120, 0.03, 0)
     tabHolder.BackgroundTransparency = 1
     tabHolder.Parent = frame
 
+    -- Tab Main
+    local tabMain = Instance.new("TextButton")
+    tabMain.Size = UDim2.new(0.31, 0, 1, 0)
+    tabMain.Position = UDim2.new(0, 0, 0, 0)
+    tabMain.Text = "⚡ Main"
+    tabMain.Font = Enum.Font.GothamBold
+    tabMain.TextSize = 11
+    tabMain.TextColor3 = Color3.fromRGB(255, 255, 255)
+    tabMain.BackgroundColor3 = Color3.fromRGB(0, 140, 255)
+    tabMain.BackgroundTransparency = 0.2
+    tabMain.Parent = tabHolder
+    local tMainCorner = Instance.new("UICorner") tMainCorner.CornerRadius = UDim.new(0, 6) tMainCorner.Parent = tabMain
+
+    -- Tab Boombox
     local tabMusic = Instance.new("TextButton")
-    tabMusic.Size = UDim2.new(0.48, 0, 1, 0)
-    tabMusic.Position = UDim2.new(0, 0, 0, 0)
-    tabMusic.Text = "🎵 Boombox"
+    tabMusic.Size = UDim2.new(0.31, 0, 1, 0)
+    tabMusic.Position = UDim2.new(0.345, 0, 0, 0)
+    tabMusic.Text = "🎵 Music"
     tabMusic.Font = Enum.Font.GothamBold
     tabMusic.TextSize = 11
-    tabMusic.TextColor3 = Color3.fromRGB(255, 255, 255)
-    tabMusic.BackgroundColor3 = Color3.fromRGB(0, 140, 255)
-    tabMusic.BackgroundTransparency = 0.2
+    tabMusic.TextColor3 = Color3.fromRGB(180, 180, 180)
+    tabMusic.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
+    tabMusic.BackgroundTransparency = 0.5
     tabMusic.Parent = tabHolder
+    local tmCorner = Instance.new("UICorner") tmCorner.CornerRadius = UDim.new(0, 6) tmCorner.Parent = tabMusic
 
-    local tmCorner = Instance.new("UICorner")
-    tmCorner.CornerRadius = UDim.new(0, 6)
-    tmCorner.Parent = tabMusic
-
+    -- Tab Hub
     local tabHub = Instance.new("TextButton")
-    tabHub.Size = UDim2.new(0.48, 0, 1, 0)
-    tabHub.Position = UDim2.new(0.52, 0, 0, 0)
-    tabHub.Text = "🌐 Script Hub"
+    tabHub.Size = UDim2.new(0.31, 0, 1, 0)
+    tabHub.Position = UDim2.new(0.69, 0, 0, 0)
+    tabHub.Text = "🌐 Hub"
     tabHub.Font = Enum.Font.GothamBold
     tabHub.TextSize = 11
     tabHub.TextColor3 = Color3.fromRGB(180, 180, 180)
     tabHub.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
     tabHub.BackgroundTransparency = 0.5
     tabHub.Parent = tabHolder
+    local thCorner = Instance.new("UICorner") thCorner.CornerRadius = UDim.new(0, 6) thCorner.Parent = tabHub
 
-    local thCorner = Instance.new("UICorner")
-    thCorner.CornerRadius = UDim.new(0, 6)
-    thCorner.Parent = tabHub
+    -- Khung chứa nội dung từng Tab
+    local mainContainer = Instance.new("Frame") mainContainer.Size = UDim2.new(1, 0, 0.82, 0) mainContainer.Position = UDim2.new(0, 0, 0.15, 0) mainContainer.BackgroundTransparency = 1 mainContainer.Visible = true mainContainer.Parent = frame
+    local musicContainer = Instance.new("Frame") musicContainer.Size = UDim2.new(1, 0, 0.82, 0) musicContainer.Position = UDim2.new(0, 0, 0.15, 0) musicContainer.BackgroundTransparency = 1 musicContainer.Visible = false musicContainer.Parent = frame
+    local hubContainer = Instance.new("Frame") hubContainer.Size = UDim2.new(1, 0, 0.82, 0) hubContainer.Position = UDim2.new(0, 0, 0.15, 0) hubContainer.BackgroundTransparency = 1 hubContainer.Visible = false hubContainer.Parent = frame
 
-    local musicContainer = Instance.new("Frame")
-    musicContainer.Size = UDim2.new(1, 0, 0.82, 0)
-    musicContainer.Position = UDim2.new(0, 0, 0.15, 0)
-    musicContainer.BackgroundTransparency = 1
-    musicContainer.Visible = true
-    musicContainer.Parent = frame
+    -- Logic chuyển tab
+    local function switchTab(activeTab)
+        mainContainer.Visible = (activeTab == "Main")
+        musicContainer.Visible = (activeTab == "Music")
+        hubContainer.Visible = (activeTab == "Hub")
 
-    local hubContainer = Instance.new("Frame")
-    hubContainer.Size = UDim2.new(1, 0, 0.82, 0)
-    hubContainer.Position = UDim2.new(0, 0, 0.15, 0)
-    hubContainer.BackgroundTransparency = 1
-    hubContainer.Visible = false
-    hubContainer.Parent = frame
+        tabMain.BackgroundColor3 = (activeTab == "Main") and Color3.fromRGB(0, 140, 255) or Color3.fromRGB(40, 40, 60)
+        tabMain.BackgroundTransparency = (activeTab == "Main") and 0.2 or 0.5
+        tabMain.TextColor3 = (activeTab == "Main") and Color3.fromRGB(255, 255, 255) or Color3.fromRGB(180, 180, 180)
 
-    tabMusic.MouseButton1Click:Connect(function()
-        musicContainer.Visible = true
-        hubContainer.Visible = false
-        tabMusic.BackgroundColor3 = Color3.fromRGB(0, 140, 255)
-        tabMusic.BackgroundTransparency = 0.2
-        tabMusic.TextColor3 = Color3.fromRGB(255, 255, 255)
-        tabHub.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
-        tabHub.BackgroundTransparency = 0.5
-        tabHub.TextColor3 = Color3.fromRGB(180, 180, 180)
+        tabMusic.BackgroundColor3 = (activeTab == "Music") and Color3.fromRGB(0, 140, 255) or Color3.fromRGB(40, 40, 60)
+        tabMusic.BackgroundTransparency = (activeTab == "Music") and 0.2 or 0.5
+        tabMusic.TextColor3 = (activeTab == "Music") and Color3.fromRGB(255, 255, 255) or Color3.fromRGB(180, 180, 180)
+
+        tabHub.BackgroundColor3 = (activeTab == "Hub") and Color3.fromRGB(0, 140, 255) or Color3.fromRGB(40, 40, 60)
+        tabHub.BackgroundTransparency = (activeTab == "Hub") and 0.2 or 0.5
+        tabHub.TextColor3 = (activeTab == "Hub") and Color3.fromRGB(255, 255, 255) or Color3.fromRGB(180, 180, 180)
+    end
+
+    tabMain.MouseButton1Click:Connect(function() switchTab("Main") end)
+    tabMusic.MouseButton1Click:Connect(function() switchTab("Music") end)
+    tabHub.MouseButton1Click:Connect(function() switchTab("Hub") end)
+
+
+    -- --- NỘI DUNG TAB 1: MAIN (FIX LAG, A.I, ANTI-AFK) ---
+    
+    -- 1. Nút Fix Lag
+    local fixLagBtn = Instance.new("TextButton")
+    fixLagBtn.Size = UDim2.new(0, 220, 0, 40)
+    fixLagBtn.Position = UDim2.new(0.5, -110, 0.08, 0)
+    fixLagBtn.Text = "🚀 Fix Lag (Tối ưu FPS)"
+    fixLagBtn.Font = Enum.Font.GothamBold
+    fixLagBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    fixLagBtn.BackgroundColor3 = Color3.fromRGB(40, 100, 60)
+    fixLagBtn.BackgroundTransparency = 0.2
+    fixLagBtn.TextSize = 12
+    fixLagBtn.Parent = mainContainer
+    local flCorner = Instance.new("UICorner") flCorner.CornerRadius = UDim.new(0, 6) flCorner.Parent = fixLagBtn
+
+    fixLagBtn.MouseButton1Click:Connect(function()
+        pcall(function()
+            for _, v in ipairs(game:GetDescendants()) do
+                if v:IsA("Part") or v:IsA("UnionOperation") or v:IsA("MeshPart") then
+                    v.Material = Enum.Material.SmoothPlastic
+                    v.Reflectance = 0
+                elseif v:IsA("Decal") or v:IsA("Texture") then
+                    v.Transparency = 1
+                elseif v:IsA("ParticleEmitter") or v:IsA("Trail") or v:IsA("Fire") or v:IsA("Smoke") then
+                    v.Enabled = false
+                end
+            end
+            settings().Rendering.QualityLevel = Enum.QualityLevel.Level01
+            workspace.Terrain.WaterWaveSize = 0
+            workspace.Terrain.WaterWaveTransparency = 1
+            workspace.Terrain.WaterReflectance = 0
+            fixLagBtn.Text = "✅ Đã tối ưu xong FPS!"
+        end)
     end)
 
-    tabHub.MouseButton1Click:Connect(function()
-        musicContainer.Visible = false
-        hubContainer.Visible = true
-        tabHub.BackgroundColor3 = Color3.fromRGB(0, 140, 255)
-        tabHub.BackgroundTransparency = 0.2
-        tabHub.TextColor3 = Color3.fromRGB(255, 255, 255)
-        tabMusic.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
-        tabMusic.BackgroundTransparency = 0.5
-        tabMusic.TextColor3 = Color3.fromRGB(180, 180, 180)
+    -- 2. Nút Chống AFK (Anti-AFK)
+    local antiAfkBtn = Instance.new("TextButton")
+    antiAfkBtn.Size = UDim2.new(0, 220, 0, 40)
+    antiAfkBtn.Position = UDim2.new(0.5, -110, 0.32, 0)
+    antiAfkBtn.Text = "🛡️ Chống AFK: TẮT"
+    antiAfkBtn.Font = Enum.Font.GothamBold
+    antiAfkBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    antiAfkBtn.BackgroundColor3 = Color3.fromRGB(120, 50, 50)
+    antiAfkBtn.BackgroundTransparency = 0.2
+    antiAfkBtn.TextSize = 12
+    antiAfkBtn.Parent = mainContainer
+    local aaCorner = Instance.new("UICorner") aaCorner.CornerRadius = UDim.new(0, 6) aaCorner.Parent = antiAfkBtn
+
+    local antiAfkEnabled = false
+    local afkConnection
+    antiAfkBtn.MouseButton1Click:Connect(function()
+        antiAfkEnabled = not antiAfkEnabled
+        if antiAfkEnabled then
+            antiAfkBtn.Text = "🛡️ Chống AFK: BẬT"
+            antiAfkBtn.BackgroundColor3 = Color3.fromRGB(50, 120, 50)
+            afkConnection = player.Idled:Connect(function()
+                VirtualUser:CaptureController()
+                VirtualUser:ClickButton2(Vector2.new())
+            end)
+        else
+            antiAfkBtn.Text = "🛡️ Chống AFK: TẮT"
+            antiAfkBtn.BackgroundColor3 = Color3.fromRGB(120, 50, 50)
+            if afkConnection then afkConnection:Disconnect() end
+        end
+    end)
+
+    -- 3. Nút A.I Tools (Trợ lý / AI Script Hub phụ trợ)
+    local aiBtn = Instance.new("TextButton")
+    aiBtn.Size = UDim2.new(0, 220, 0, 40)
+    aiBtn.Position = UDim2.new(0.5, -110, 0.56, 0)
+    aiBtn.Text = "🤖 Mở A.I Utility Script"
+    aiBtn.Font = Enum.Font.GothamBold
+    aiBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    aiBtn.BackgroundColor3 = Color3.fromRGB(70, 50, 120)
+    aiBtn.BackgroundTransparency = 0.2
+    aiBtn.TextSize = 12
+    aiBtn.Parent = mainContainer
+    local aiCorner = Instance.new("UICorner") aiCorner.CornerRadius = UDim.new(0, 6) aiCorner.Parent = aiBtn
+
+    aiBtn.MouseButton1Click:Connect(function()
+        pcall(function()
+            -- Tải một script tiện ích AI/ESP nhẹ nhàng làm ví dụ
+            loadstring(game:HttpGet("https://raw.githubusercontent.com/miroimc/SimpleAimbot/main/main.lua", true))()
+        end)
     end)
 
 
+    -- --- NỘI DUNG TAB 2: MUSIC BOOMBOX ---
     local textBox = Instance.new("TextBox")
     textBox.Size = UDim2.new(0, 220, 0, 28)
     textBox.Position = UDim2.new(0.5, -110, 0.02, 0)
@@ -283,10 +383,7 @@ local function createBoomboxGUI()
     textBox.BackgroundTransparency = 0.3
     textBox.TextSize = 12
     textBox.Parent = musicContainer
-
-    local textCorner = Instance.new("UICorner")
-    textCorner.CornerRadius = UDim.new(0, 6)
-    textCorner.Parent = textBox
+    local textCorner = Instance.new("UICorner") textCorner.CornerRadius = UDim.new(0, 6) textCorner.Parent = textBox
 
     local scrollingFrame = Instance.new("ScrollingFrame")
     scrollingFrame.Size = UDim2.new(0, 220, 0, 95)
@@ -297,10 +394,7 @@ local function createBoomboxGUI()
     scrollingFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
     scrollingFrame.ScrollBarThickness = 3
     scrollingFrame.Parent = musicContainer
-
-    local scrollCorner = Instance.new("UICorner")
-    scrollCorner.CornerRadius = UDim.new(0, 6)
-    scrollCorner.Parent = scrollingFrame
+    local scrollCorner = Instance.new("UICorner") scrollCorner.CornerRadius = UDim.new(0, 6) scrollCorner.Parent = scrollingFrame
 
     local uiListLayout = Instance.new("UIListLayout")
     uiListLayout.SortOrder = Enum.SortOrder.LayoutOrder
@@ -309,275 +403,58 @@ local function createBoomboxGUI()
 
     local function updateSavedList()
         for _, child in ipairs(scrollingFrame:GetChildren()) do
-            if child:IsA("Frame") then
-                child:Destroy()
-            end
+            if child:IsA("Frame") then child:Destroy() end
         end
-
         local savedIDs = loadSavedIDs()
         scrollingFrame.CanvasSize = UDim2.new(0, 0, 0, #savedIDs * 26)
-
         for _, id in ipairs(savedIDs) do
-            local itemContainer = Instance.new("Frame")
-            itemContainer.Size = UDim2.new(1, -4, 0, 24)
-            itemContainer.BackgroundTransparency = 1
-            itemContainer.Parent = scrollingFrame
-
-            local btn = Instance.new("TextButton")
-            btn.Size = UDim2.new(0, 185, 1, 0)
-            btn.BackgroundColor3 = Color3.fromRGB(30, 35, 55)
-            btn.BackgroundTransparency = 0.2
-            btn.Text = "⏳ Đang tải tên..."
-            btn.TextColor3 = Color3.fromRGB(220, 220, 220)
-            btn.TextSize = 11
-            btn.Font = Enum.Font.Gotham
-            btn.Parent = itemContainer
+            local itemContainer = Instance.new("Frame") itemContainer.Size = UDim2.new(1, -4, 0, 24) itemContainer.BackgroundTransparency = 1 itemContainer.Parent = scrollingFrame
+            local btn = Instance.new("TextButton") btn.Size = UDim2.new(0, 185, 1, 0) btn.BackgroundColor3 = Color3.fromRGB(30, 35, 55) btn.BackgroundTransparency = 0.2 btn.Text = "⏳ Đang tải..." btn.TextColor3 = Color3.fromRGB(220, 220, 220) btn.TextSize = 11 btn.Font = Enum.Font.Gotham btn.Parent = itemContainer
+            local bCorner = Instance.new("UICorner") bCorner.CornerRadius = UDim.new(0, 4) bCorner.Parent = btn
 
             task.spawn(function()
                 local songTitle = getSongName(id)
-                if btn and btn.Parent then
-                    btn.Text = "🎵 " .. songTitle
-                end
+                if btn and btn.Parent then btn.Text = "🎵 " .. songTitle end
             end)
 
-            local btnCorner = Instance.new("UICorner")
-            btnCorner.CornerRadius = UDim.new(0, 4)
-            btnCorner.Parent = btn
+            local deleteBtn = Instance.new("TextButton") deleteBtn.Size = UDim2.new(0, 24, 1, 0) deleteBtn.Position = UDim2.new(1, -24, 0, 0) deleteBtn.BackgroundColor3 = Color3.fromRGB(160, 40, 40) deleteBtn.BackgroundTransparency = 0.1 deleteBtn.Text = "X" deleteBtn.TextColor3 = Color3.fromRGB(255, 255, 255) deleteBtn.TextSize = 10 deleteBtn.Font = Enum.Font.GothamBold deleteBtn.Parent = itemContainer
+            local dCorner = Instance.new("UICorner") dCorner.CornerRadius = UDim.new(0, 4) dCorner.Parent = deleteBtn
 
-            local deleteBtn = Instance.new("TextButton")
-            deleteBtn.Size = UDim2.new(0, 24, 1, 0)
-            deleteBtn.Position = UDim2.new(1, -24, 0, 0)
-            deleteBtn.BackgroundColor3 = Color3.fromRGB(160, 40, 40)
-            deleteBtn.BackgroundTransparency = 0.1
-            deleteBtn.Text = "X"
-            deleteBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-            deleteBtn.TextSize = 10
-            deleteBtn.Font = Enum.Font.GothamBold
-            deleteBtn.Parent = itemContainer
-
-            local delCorner = Instance.new("UICorner")
-            delCorner.CornerRadius = UDim.new(0, 4)
-            delCorner.Parent = deleteBtn
-
-            btn.MouseButton1Click:Connect(function()
-                textBox.Text = tostring(id)
-            end)
-
-            deleteBtn.MouseButton1Click:Connect(function()
-                removeID(id)
-                updateSavedList()
-            end)
+            btn.MouseButton1Click:Connect(function() textBox.Text = tostring(id) end)
+            deleteBtn.MouseButton1Click:Connect(function() removeID(id) updateSavedList() end)
         end
     end
-
     updateSavedList()
 
-    local playButton = Instance.new("TextButton")
-    playButton.Size = UDim2.new(0, 105, 0, 30)
-    playButton.Position = UDim2.new(0.09, 0, 0.45, 0)
-    playButton.Text = "PHÁT & LƯU"
-    playButton.Font = Enum.Font.GothamBold
-    playButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-    playButton.BackgroundColor3 = Color3.fromRGB(0, 140, 255)
-    playButton.BackgroundTransparency = 0.2
-    playButton.TextSize = 11
-    playButton.Parent = musicContainer
+    -- Nút điều khiển nhạc cơ bản
+    local playButton = Instance.new("TextButton") playButton.Size = UDim2.new(0, 105, 0, 28) playButton.Position = UDim2.new(0.09, 0, 0.45, 0) playButton.Text = "PHÁT & LƯU" playButton.Font = Enum.Font.GothamBold playButton.TextColor3 = Color3.fromRGB(255, 255, 255) playButton.BackgroundColor3 = Color3.fromRGB(0, 140, 255) playButton.BackgroundTransparency = 0.2 playButton.TextSize = 11 playButton.Parent = musicContainer
+    local pbCorner = Instance.new("UICorner") pbCorner.CornerRadius = UDim.new(0, 6) pbCorner.Parent = playButton
 
-    local btnCorner1 = Instance.new("UICorner")
-    btnCorner1.CornerRadius = UDim.new(0, 6)
-    btnCorner1.Parent = playButton
+    local stopButton = Instance.new("TextButton") stopButton.Size = UDim2.new(0, 105, 0, 28) stopButton.Position = UDim2.new(0.53, 0, 0.45, 0) stopButton.Text = "DỪNG" stopButton.Font = Enum.Font.GothamBold stopButton.TextColor3 = Color3.fromRGB(255, 255, 255) stopButton.BackgroundColor3 = Color3.fromRGB(200, 40, 40) stopButton.BackgroundTransparency = 0.2 stopButton.TextSize = 11 stopButton.Parent = musicContainer
+    local sbCorner = Instance.new("UICorner") sbCorner.CornerRadius = UDim.new(0, 6) sbCorner.Parent = stopButton
 
-    local stopButton = Instance.new("TextButton")
-    stopButton.Size = UDim2.new(0, 105, 0, 30)
-    stopButton.Position = UDim2.new(0.53, 0, 0.45, 0)
-    stopButton.Text = "DỪNG"
-    stopButton.Font = Enum.Font.GothamBold
-    stopButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-    stopButton.BackgroundColor3 = Color3.fromRGB(200, 40, 40)
-    stopButton.BackgroundTransparency = 0.2
-    stopButton.TextSize = 11
-    stopButton.Parent = musicContainer
+    local volDownBtn = Instance.new("TextButton") volDownBtn.Size = UDim2.new(0, 105, 0, 28) volDownBtn.Position = UDim2.new(0.09, 0, 0.58, 0) volDownBtn.Text = "🔉 Giảm tiếng" volDownBtn.Font = Enum.Font.GothamBold volDownBtn.TextColor3 = Color3.fromRGB(255, 255, 255) volDownBtn.BackgroundColor3 = Color3.fromRGB(160, 80, 40) volDownBtn.BackgroundTransparency = 0.2 volDownBtn.TextSize = 11 volDownBtn.Parent = musicContainer
+    local vdCorner = Instance.new("UICorner") vdCorner.CornerRadius = UDim.new(0, 6) vdCorner.Parent = volDownBtn
 
-    local btnCorner2 = Instance.new("UICorner")
-    btnCorner2.CornerRadius = UDim.new(0, 6)
-    btnCorner2.Parent = stopButton
-
-    local rewindButton = Instance.new("TextButton")
-    rewindButton.Size = UDim2.new(0, 105, 0, 28)
-    rewindButton.Position = UDim2.new(0.09, 0, 0.58, 0)
-    rewindButton.Text = "⏪ Tua -5s"
-    rewindButton.Font = Enum.Font.GothamBold
-    rewindButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-    rewindButton.BackgroundColor3 = Color3.fromRGB(70, 70, 90)
-    rewindButton.BackgroundTransparency = 0.2
-    rewindButton.TextSize = 11
-    rewindButton.Parent = musicContainer
-
-    local rwCorner = Instance.new("UICorner")
-    rwCorner.CornerRadius = UDim.new(0, 6)
-    rwCorner.Parent = rewindButton
-
-    local forwardButton = Instance.new("TextButton")
-    forwardButton.Size = UDim2.new(0, 105, 0, 28)
-    forwardButton.Position = UDim2.new(0.53, 0, 0.58, 0)
-    forwardButton.Text = "Tua +5s ⏩"
-    forwardButton.Font = Enum.Font.GothamBold
-    forwardButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-    forwardButton.BackgroundColor3 = Color3.fromRGB(70, 70, 90)
-    forwardButton.BackgroundTransparency = 0.2
-    forwardButton.TextSize = 11
-    forwardButton.Parent = musicContainer
-
-    local fwCorner = Instance.new("UICorner")
-    fwCorner.CornerRadius = UDim.new(0, 6)
-    fwCorner.Parent = forwardButton
-
-    local loopButton = Instance.new("TextButton")
-    loopButton.Size = UDim2.new(0, 105, 0, 28)
-    loopButton.Position = UDim2.new(0.09, 0, 0.71, 0)
-    loopButton.Text = "🔁 Lặp: TẮT"
-    loopButton.Font = Enum.Font.GothamBold
-    loopButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-    loopButton.BackgroundColor3 = Color3.fromRGB(90, 50, 120)
-    loopButton.BackgroundTransparency = 0.2
-    loopButton.TextSize = 11
-    loopButton.Parent = musicContainer
-
-    local lpCorner = Instance.new("UICorner")
-    lpCorner.CornerRadius = UDim.new(0, 6)
-    lpCorner.Parent = loopButton
-
-    local speedButton = Instance.new("TextButton")
-    speedButton.Size = UDim2.new(0, 105, 0, 28)
-    speedButton.Position = UDim2.new(0.53, 0, 0.71, 0)
-    speedButton.Text = "⚡ Tốc độ: 1.0x"
-    speedButton.Font = Enum.Font.GothamBold
-    speedButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-    speedButton.BackgroundColor3 = Color3.fromRGB(90, 50, 120)
-    speedButton.BackgroundTransparency = 0.2
-    speedButton.TextSize = 11
-    speedButton.Parent = musicContainer
-
-    local spdCorner = Instance.new("UICorner")
-    spdCorner.CornerRadius = UDim.new(0, 6)
-    spdCorner.Parent = speedButton
-
-    local volDownBtn = Instance.new("TextButton")
-    volDownBtn.Size = UDim2.new(0, 105, 0, 28)
-    volDownBtn.Position = UDim2.new(0.09, 0, 0.84, 0)
-    volDownBtn.Text = "🔉 Giảm tiếng (-)"
-    volDownBtn.Font = Enum.Font.GothamBold
-    volDownBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-    volDownBtn.BackgroundColor3 = Color3.fromRGB(160, 80, 40)
-    volDownBtn.BackgroundTransparency = 0.2
-    volDownBtn.TextSize = 11
-    volDownBtn.Parent = musicContainer
-
-    local vdCorner = Instance.new("UICorner")
-    vdCorner.CornerRadius = UDim.new(0, 6)
-    vdCorner.Parent = volDownBtn
-
-    local volUpBtn = Instance.new("TextButton")
-    volUpBtn.Size = UDim2.new(0, 105, 0, 28)
-    volUpBtn.Position = UDim2.new(0.53, 0, 0.84, 0)
-    volUpBtn.Text = "🔊 Tăng tiếng (+)"
-    volUpBtn.Font = Enum.Font.GothamBold
-    volUpBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-    volUpBtn.BackgroundColor3 = Color3.fromRGB(40, 120, 80)
-    volUpBtn.BackgroundTransparency = 0.2
-    volUpBtn.TextSize = 11
-    volUpBtn.Parent = musicContainer
-
-    local vuCorner = Instance.new("UICorner")
-    vuCorner.CornerRadius = UDim.new(0, 6)
-    vuCorner.Parent = volUpBtn
+    local volUpBtn = Instance.new("TextButton") volUpBtn.Size = UDim2.new(0, 105, 0, 28) volUpBtn.Position = UDim2.new(0.53, 0, 0.58, 0) volUpBtn.Text = "🔊 Tăng tiếng" volUpBtn.Font = Enum.Font.GothamBold volUpBtn.TextColor3 = Color3.fromRGB(255, 255, 255) volUpBtn.BackgroundColor3 = Color3.fromRGB(40, 120, 80) volUpBtn.BackgroundTransparency = 0.2 volUpBtn.TextSize = 11 volUpBtn.Parent = musicContainer
+    local vuCorner = Instance.new("UICorner") vuCorner.CornerRadius = UDim.new(0, 6) vuCorner.Parent = volUpBtn
 
 
-    local infYieldBtn = Instance.new("TextButton")
-    infYieldBtn.Size = UDim2.new(0, 220, 0, 36)
-    infYieldBtn.Position = UDim2.new(0.5, -110, 0.08, 0)
-    infYieldBtn.Text = "🛠️ Infinite Yield (Admin)"
-    infYieldBtn.Font = Enum.Font.GothamBold
-    infYieldBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-    infYieldBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 65)
-    infYieldBtn.BackgroundTransparency = 0.2
-    infYieldBtn.TextSize = 12
-    infYieldBtn.Parent = hubContainer
+    -- --- NỘI DUNG TAB 3: SCRIPT HUB ---
+    local infYieldBtn = Instance.new("TextButton") infYieldBtn.Size = UDim2.new(0, 220, 0, 36) infYieldBtn.Position = UDim2.new(0.5, -110, 0.08, 0) infYieldBtn.Text = "🛠️ Infinite Yield (Admin)" infYieldBtn.Font = Enum.Font.GothamBold infYieldBtn.TextColor3 = Color3.fromRGB(255, 255, 255) infYieldBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 65) infYieldBtn.BackgroundTransparency = 0.2 infYieldBtn.TextSize = 12 infYieldBtn.Parent = hubContainer
+    local iyCorner = Instance.new("UICorner") iyCorner.CornerRadius = UDim.new(0, 6) iyCorner.Parent = infYieldBtn
+    infYieldBtn.MouseButton1Click:Connect(function() pcall(function() loadstring(game:HttpGet('https://raw.githubusercontent.com/EdgeIY/infiniteyield/master/source'))() end) end)
 
-    local iyCorner = Instance.new("UICorner")
-    iyCorner.CornerRadius = UDim.new(0, 6)
-    iyCorner.Parent = infYieldBtn
+    local hub2Btn = Instance.new("TextButton") hub2Btn.Size = UDim2.new(0, 220, 0, 36) hub2Btn.Position = UDim2.new(0.5, -110, 0.28, 0) hub2Btn.Text = "⚡ Domain X Hub" hub2Btn.Font = Enum.Font.GothamBold hub2Btn.TextColor3 = Color3.fromRGB(255, 255, 255) hub2Btn.BackgroundColor3 = Color3.fromRGB(40, 40, 65) hub2Btn.BackgroundTransparency = 0.2 hub2Btn.TextSize = 12 hub2Btn.Parent = hubContainer
+    local h2Corner = Instance.new("UICorner") h2Corner.CornerRadius = UDim.new(0, 6) h2Corner.Parent = hub2Btn
+    hub2Btn.MouseButton1Click:Connect(function() pcall(function() loadstring(game:HttpGet('https://raw.githubusercontent.com/ShadDow12345/DomainX/main/DomainX.lua'))() end) end)
 
-    infYieldBtn.MouseButton1Click:Connect(function()
-        pcall(function()
-            loadstring(game:HttpGet('https://raw.githubusercontent.com/EdgeIY/infiniteyield/master/source'))()
-        end)
-    end)
-
-    local hub2Btn = Instance.new("TextButton")
-    hub2Btn.Size = UDim2.new(0, 220, 0, 36)
-    hub2Btn.Position = UDim2.new(0.5, -110, 0.28, 0)
-    hub2Btn.Text = "⚡ Domain X Hub"
-    hub2Btn.Font = Enum.Font.GothamBold
-    hub2Btn.TextColor3 = Color3.fromRGB(255, 255, 255)
-    hub2Btn.BackgroundColor3 = Color3.fromRGB(40, 40, 65)
-    hub2Btn.BackgroundTransparency = 0.2
-    hub2Btn.TextSize = 12
-    hub2Btn.Parent = hubContainer
-
-    local h2Corner = Instance.new("UICorner")
-    h2Corner.CornerRadius = UDim.new(0, 6)
-    h2Corner.Parent = hub2Btn
-
-    hub2Btn.MouseButton1Click:Connect(function()
-        pcall(function()
-            loadstring(game:HttpGet('https://raw.githubusercontent.com/ShadDow12345/DomainX/main/DomainX.lua'))()
-        end)
-    end)
-    local hub3Btn = Instance.new("TextButton")
-    hub3Btn.Size = UDim2.new(0, 220, 0, 36)
-    hub3Btn.Position = UDim2.new(0.5, -110, 0.48, 0)
-    hub3Btn.Text = "🔍 Hydroxide (Remote Spy)"
-    hub3Btn.Font = Enum.Font.GothamBold
-    hub3Btn.TextColor3 = Color3.fromRGB(255, 255, 255)
-    hub3Btn.BackgroundColor3 = Color3.fromRGB(40, 40, 65)
-    hub3Btn.BackgroundTransparency = 0.2
-    hub3Btn.TextSize = 12
-    hub3Btn.Parent = hubContainer
-
-    local h3Corner = Instance.new("UICorner")
-    h3Corner.CornerRadius = UDim.new(0, 6)
-    h3Corner.Parent = hub3Btn
-
-    hub3Btn.MouseButton1Click:Connect(function()
-        pcall(function()
-            loadstring(game:HttpGet("https://raw.githubusercontent.com/Upbolt/Hydroxide/master/init.lua"))()
-        end)
-    end)
-
-    local hub4Btn = Instance.new("TextButton")
-    hub4Btn.Size = UDim2.new(0, 220, 0, 36)
-    hub4Btn.Position = UDim2.new(0.5, -110, 0.68, 0)
-    hub4Btn.Text = "🌐 Vane Hub (General)"
-    hub4Btn.Font = Enum.Font.GothamBold
-    hub4Btn.TextColor3 = Color3.fromRGB(255, 255, 255)
-    hub4Btn.BackgroundColor3 = Color3.fromRGB(40, 40, 65)
-    hub4Btn.BackgroundTransparency = 0.2
-    hub4Btn.TextSize = 12
-    hub4Btn.Parent = hubContainer
-
-    local h4Corner = Instance.new("UICorner")
-    h4Corner.CornerRadius = UDim.new(0, 6)
-    h4Corner.Parent = hub4Btn
-
-    hub4Btn.MouseButton1Click:Connect(function()
-        pcall(function()
-            loadstring(game:HttpGet("https://raw.githubusercontent.com/VEZ2/VaneHub/main/Loader.lua"))()
-        end)
-    end)
+    local hub3Btn = Instance.new("TextButton") hub3Btn.Size = UDim2.new(0, 220, 0, 36) hub3Btn.Position = UDim2.new(0.5, -110, 0.48, 0) hub3Btn.Text = "🔍 Hydroxide (Remote Spy)" hub3Btn.Font = Enum.Font.GothamBold hub3Btn.TextColor3 = Color3.fromRGB(255, 255, 255) hub3Btn.BackgroundColor3 = Color3.fromRGB(40, 40, 65) hub3Btn.BackgroundTransparency = 0.2 hub3Btn.TextSize = 12 hub3Btn.Parent = hubContainer
+    local h3Corner = Instance.new("UICorner") h3Corner.CornerRadius = UDim.new(0, 6) h3Corner.Parent = hub3Btn
+    hub3Btn.MouseButton1Click:Connect(function() pcall(function() loadstring(game:HttpGet("https://raw.githubusercontent.com/Upbolt/Hydroxide/master/init.lua"))() end) end)
 
 
-
+    -- --- XỬ LÝ SỰ KIỆN CHÍNH ---
     local menuOpen = true
     toggleButton.MouseButton1Click:Connect(function()
         menuOpen = not menuOpen
@@ -596,52 +473,9 @@ local function createBoomboxGUI()
         end
     end)
 
-    stopButton.MouseButton1Click:Connect(function()
-        sound:Stop()
-    end)
-
-    rewindButton.MouseButton1Click:Connect(function()
-        if sound.IsLoaded then
-            sound.TimePosition = math.max(0, sound.TimePosition - 5)
-        end
-    end)
-
-    forwardButton.MouseButton1Click:Connect(function()
-        if sound.IsLoaded then
-            sound.TimePosition = math.min(sound.TimeLength, sound.TimePosition + 5)
-        end
-    end)
-
-    loopButton.MouseButton1Click:Connect(function()
-        sound.Looped = not sound.Looped
-        if sound.Looped then
-            loopButton.Text = "🔁 Lặp: BẬT"
-            loopButton.BackgroundColor3 = Color3.fromRGB(140, 70, 180)
-        else
-            loopButton.Text = "🔁 Lặp: TẮT"
-            loopButton.BackgroundColor3 = Color3.fromRGB(90, 50, 120)
-        end
-    end)
-
-    local speeds = {0.5, 1.0, 1.25, 1.5, 2.0}
-    local speedIndex = 2
-    speedButton.MouseButton1Click:Connect(function()
-        speedIndex = speedIndex + 1
-        if speedIndex > #speeds then speedIndex = 1 end
-        local currentSpeed = speeds[speedIndex]
-        sound.PlaybackSpeed = currentSpeed
-        speedButton.Text = "⚡ Tốc độ: " .. tostring(currentSpeed) .. "x"
-    end)
-
-    volDownBtn.MouseButton1Click:Connect(function()
-        sound.Volume = math.max(0, sound.Volume - 0.5)
-        volDownBtn.Text = "🔉 Giảm (" .. string.format("%.1f", sound.Volume) .. ")"
-    end)
-
-    volUpBtn.MouseButton1Click:Connect(function()
-        sound.Volume = math.min(10, sound.Volume + 0.5)
-        volUpBtn.Text = "🔊 Tăng (" .. string.format("%.1f", sound.Volume) .. ")"
-    end)
+    stopButton.MouseButton1Click:Connect(function() sound:Stop() end)
+    volDownBtn.MouseButton1Click:Connect(function() sound.Volume = math.max(0, sound.Volume - 0.5) end)
+    volUpBtn.MouseButton1Click:Connect(function() sound.Volume = math.min(10, sound.Volume + 0.5) end)
 end
 
 createBoomboxGUI()
