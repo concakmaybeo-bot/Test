@@ -1,9 +1,9 @@
 -- Services
 local Players = game:GetService("Players")
-local TweenService = game:GetService("TweenService")
 local RunService = game:GetService("RunService")
 local HttpService = game:GetService("HttpService")
 local UserInputService = game:GetService("UserInputService")
+local MarketplaceService = game:GetService("MarketplaceService")
 
 local player = Players.LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
@@ -65,7 +65,18 @@ local function removeID(idToRemove)
     end
 end
 
--- Hàm hỗ trợ kéo thả (Draggable) cho cả Mobile lẫn PC
+-- Hàm lấy tên bài hát tự động từ Roblox Marketplace
+local function getSongName(id)
+    local success, info = pcall(function()
+        return MarketplaceService:GetProductInfo(id)
+    end)
+    if success and info and info.Name then
+        return info.Name
+    end
+    return "Không rõ tên (" .. tostring(id) .. ")"
+end
+
+-- Hàm hỗ trợ kéo thả (Draggable) cho UI
 local function makeDraggable(guiObject)
     local dragging, dragInput, dragStart, startPos
 
@@ -114,49 +125,45 @@ local function createBoomboxGUI()
     screenGui.DisplayOrder = 999
     screenGui.Parent = playerGui
 
-    -- 1. Toggle Button với hiệu ứng Neon cực đẹp & mượt mà
+    -- 1. Watermark hiển thị khi người khác vừa nhập script vào (Góc trên bên trái)
+    local watermark = Instance.new("TextLabel")
+    watermark.Name = "Watermark"
+    watermark.Size = UDim2.new(0, 220, 0, 24)
+    watermark.Position = UDim2.new(0.01, 0, 0.01, 0)
+    watermark.BackgroundColor3 = Color3.fromRGB(15, 15, 25)
+    watermark.BackgroundTransparency = 0.4
+    watermark.TextColor3 = Color3.fromRGB(0, 220, 255)
+    watermark.TextSize = 12
+    watermark.Font = Enum.Font.GothamBold
+    watermark.Text = "🔥 Boombox Script Loaded!"
+    watermark.Parent = screenGui
+
+    local wmCorner = Instance.new("UICorner")
+    wmCorner.CornerRadius = UDim.new(0, 6)
+    wmCorner.Parent = watermark
+
+    -- 2. Toggle Button tối giản gọn gàng (Đã gỡ hiệu ứng vòng xoay rườm rà theo yêu cầu)
     local toggleButton = Instance.new("ImageButton")
     toggleButton.Name = "ToggleButton"
-    toggleButton.Size = UDim2.new(0, 52, 0, 52)
+    toggleButton.Size = UDim2.new(0, 48, 0, 48)
     toggleButton.Position = UDim2.new(0.02, 0, 0.35, 0)
-    toggleButton.BackgroundColor3 = Color3.fromRGB(15, 15, 25)
+    toggleButton.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
     toggleButton.Image = "rbxassetid://6034818372"
     toggleButton.Visible = true
     toggleButton.Parent = screenGui
 
     local toggleCorner = Instance.new("UICorner")
-    toggleCorner.CornerRadius = UDim.new(1, 0) -- Bo tròn hoàn toàn dạng hình tròn
+    toggleCorner.CornerRadius = UDim.new(1, 0)
     toggleCorner.Parent = toggleButton
 
     local toggleStroke = Instance.new("UIStroke")
-    toggleStroke.Color = Color3.fromRGB(0, 220, 255)
-    toggleStroke.Thickness = 2.5
+    toggleStroke.Color = Color3.fromRGB(0, 160, 255)
+    toggleStroke.Thickness = 2
     toggleStroke.Parent = toggleButton
 
-    -- Vòng sáng hiệu ứng Neon xoay quanh ToggleButton
-    local ringEffect = Instance.new("ImageLabel")
-    ringEffect.Name = "RingEffect"
-    ringEffect.Size = UDim2.new(1.5, 0, 1.5, 0)
-    ringEffect.Position = UDim2.new(-0.25, 0, -0.25, 0)
-    ringEffect.BackgroundTransparency = 1
-    ringEffect.Image = "rbxassetid://6023426915"
-    ringEffect.ImageColor3 = Color3.fromRGB(0, 170, 255)
-    ringEffect.Parent = toggleButton
-
-    -- Hiệu ứng xoay vòng và đổi màu Neon lung linh liên tục
-    local hue = 0
-    RunService.RenderStepped:Connect(function(dt)
-        if ringEffect and ringEffect.Parent then
-            ringEffect.Rotation = ringEffect.Rotation + (60 * dt * 3)
-            hue = (hue + dt * 0.2) % 1
-            ringEffect.ImageColor3 = Color3.fromHSV(hue, 0.8, 1)
-        end
-    end)
-
-    -- Cho phép kéo thả ToggleButton linh hoạt trên màn hình
     makeDraggable(toggleButton)
 
-    -- 2. Menu chính thu gọn, cân đối
+    -- 3. Menu chính
     local frame = Instance.new("Frame")
     frame.Name = "MenuFrame"
     frame.Size = UDim2.new(0, 260, 0, 280)
@@ -175,7 +182,6 @@ local function createBoomboxGUI()
     frameStroke.Thickness = 2
     frameStroke.Parent = frame
 
-    -- Cho phép kéo thả Menu chính linh hoạt
     makeDraggable(frame)
 
     -- Icon trang trí phía trên menu
@@ -203,7 +209,7 @@ local function createBoomboxGUI()
     textCorner.CornerRadius = UDim.new(0, 6)
     textCorner.Parent = textBox
 
-    -- ScrollingFrame chứa danh sách ID đã lưu (kèm nút Xóa riêng cho từng ID)
+    -- ScrollingFrame chứa danh sách ID đã lưu
     local scrollingFrame = Instance.new("ScrollingFrame")
     scrollingFrame.Size = UDim2.new(0, 220, 0, 85)
     scrollingFrame.Position = UDim2.new(0.5, -110, 0.41, 0)
@@ -238,27 +244,36 @@ local function createBoomboxGUI()
             itemContainer.BackgroundTransparency = 1
             itemContainer.Parent = scrollingFrame
 
+            -- Nút bấm tên bài hát (Tự động tải tên bài hát hiển thị cho dễ nhớ)
             local btn = Instance.new("TextButton")
-            btn.Size = UDim2.new(0, 165, 1, 0)
+            btn.Size = UDim2.new(0, 185, 1, 0)
             btn.BackgroundColor3 = Color3.fromRGB(30, 35, 55)
-            btn.Text = "🎵 " .. tostring(id)
+            btn.Text = "⏳ Đang tải tên..."
             btn.TextColor3 = Color3.fromRGB(220, 220, 220)
             btn.TextSize = 11
             btn.Font = Enum.Font.Gotham
             btn.Parent = itemContainer
 
+            -- Lấy tên bài hát bất đồng bộ để tránh lag game
+            task.spawn(function()
+                local songTitle = getSongName(id)
+                if btn and btn.Parent then
+                    btn.Text = "🎵 " .. songTitle
+                end
+            end)
+
             local btnCorner = Instance.new("UICorner")
             btnCorner.CornerRadius = UDim.new(0, 4)
             btnCorner.Parent = btn
 
-            -- Nút Xóa ID riêng biệt
+            -- Nút Xóa nhỏ gọn, tinh tế hình chữ [X] nằm gọn bên phải
             local deleteBtn = Instance.new("TextButton")
             deleteBtn.Size = UDim2.new(0, 24, 1, 0)
             deleteBtn.Position = UDim2.new(1, -24, 0, 0)
-            deleteBtn.BackgroundColor3 = Color3.fromRGB(180, 40, 40)
-            deleteBtn.Text = "✕"
+            deleteBtn.BackgroundColor3 = Color3.fromRGB(160, 40, 40)
+            deleteBtn.Text = "X"
             deleteBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-            deleteBtn.TextSize = 11
+            deleteBtn.TextSize = 10
             deleteBtn.Font = Enum.Font.GothamBold
             deleteBtn.Parent = itemContainer
 
