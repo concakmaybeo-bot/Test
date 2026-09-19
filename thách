@@ -6,7 +6,6 @@ local RunService = game:GetService("RunService")
 local HttpService = game:GetService("HttpService")
 
 local player = Players.LocalPlayer
-local character = player.Character or player.CharacterAdded:Wait()
 
 -- Remote Event setup
 local remoteEvent = ReplicatedStorage:FindFirstChild("BoomboxEvent")
@@ -15,27 +14,6 @@ if not remoteEvent then
     remoteEvent.Name = "BoomboxEvent"
     remoteEvent.Parent = ReplicatedStorage
 end
-
--- Create Tool
-local tool = Instance.new("Tool")
-tool.Name = "Boombox"
-tool.RequiresHandle = true
-
--- Create Handle
-local handle = Instance.new("Part")
-handle.Name = "Handle"
-handle.Size = Vector3.new(1.5, 1, 0.8)
-handle.BrickColor = BrickColor.new("Really black")
-handle.Material = Enum.Material.SmoothPlastic
-handle.Parent = tool
-
--- Add Sound
-local sound = Instance.new("Sound")
-sound.Name = "Music"
-sound.Volume = 2
-sound.RollOffMaxDistance = 100
-sound.RollOffMinDistance = 10
-sound.Parent = handle
 
 -- File Save/Load System
 local fileName = "BoomboxSavedIDs.json"
@@ -67,7 +45,7 @@ local function saveID(id)
     end
 end
 
--- GUI Creation with Rotating Neon Ring Effect on ToggleButton
+-- GUI Creation with Rotating Neon Ring Effect on ToggleButton (Luôn hiển thị trực tiếp trên màn hình)
 local function createBoomboxGUI()
     local screenGui = player:WaitForChild("PlayerGui"):FindFirstChild("BoomboxGUI")
     if screenGui then screenGui:Destroy() end
@@ -77,17 +55,17 @@ local function createBoomboxGUI()
     screenGui.ResetOnSpawn = false
     screenGui.Parent = player.PlayerGui
 
-    -- Toggle Button chứa hiệu ứng vòng tròn xoay phát sáng (lấy cảm hứng từ ảnh mẫu)[span_0](start_span)[span_0](end_span)
+    -- Toggle Button chứa hiệu ứng vòng tròn xoay phát sáng
     local toggleButton = Instance.new("ImageButton")
     toggleButton.Name = "ToggleButton"
     toggleButton.Size = UDim2.new(0, 60, 0, 60)
     toggleButton.Position = UDim2.new(0.02, 0, 0.4, 0)
     toggleButton.BackgroundTransparency = 1
     toggleButton.Image = "rbxassetid://6034818372" -- Icon chính giữa
-    toggleButton.Visible = false
+    toggleButton.Visible = true
     toggleButton.Parent = screenGui
 
-    -- Vòng tròn hiệu ứng xoay (Neon Ring Effect giống hình mẫu)[span_1](start_span)[span_1](end_span)
+    -- Vòng tròn hiệu ứng xoay (Neon Ring Effect)
     local ringEffect = Instance.new("ImageLabel")
     ringEffect.Name = "RingEffect"
     ringEffect.Size = UDim2.new(1.4, 0, 1.4, 0)
@@ -101,7 +79,7 @@ local function createBoomboxGUI()
     local rotationConnection
     rotationConnection = RunService.RenderStepped:Connect(function(dt)
         if ringEffect and ringEffect.Parent then
-            ringEffect.Rotation = ringEffect.Rotation + (45 * dt * 2) -- Tốc độ xoay
+            ringEffect.Rotation = ringEffect.Rotation + (45 * dt * 2)
         else
             rotationConnection:Disconnect()
         end
@@ -115,14 +93,14 @@ local function createBoomboxGUI()
         TweenService:Create(toggleButton, TweenInfo.new(0.2), {Size = UDim2.new(0, 60, 0, 60)}):Play()
     end)
 
-    -- Menu chính[span_2](start_span)[span_2](end_span)
+    -- Menu chính
     local frame = Instance.new("Frame")
     frame.Name = "MenuFrame"
     frame.Size = UDim2.new(0, 320, 0, 380)
     frame.Position = UDim2.new(0.5, -160, 0.5, -190)
     frame.BackgroundColor3 = Color3.fromRGB(10, 10, 15)
     frame.BorderSizePixel = 0
-    frame.Visible = false
+    frame.Visible = true -- Mặc định mở hoặc đóng tùy ý bạn
     frame.Parent = screenGui
 
     local corner = Instance.new("UICorner")
@@ -134,7 +112,7 @@ local function createBoomboxGUI()
     frameStroke.Thickness = 2
     frameStroke.Parent = frame
 
-    -- Khung hình tròn trung tâm trong menu[span_3](start_span)[span_3](end_span)
+    -- Khung hình tròn trung tâm trong menu
     local circleArt = Instance.new("ImageLabel")
     circleArt.Name = "CircleArt"
     circleArt.Size = UDim2.new(0, 100, 0, 100)
@@ -143,7 +121,7 @@ local function createBoomboxGUI()
     circleArt.Image = "rbxassetid://6023426915"
     circleArt.Parent = frame
 
-    -- Ô nhập ID nhạc[span_4](start_span)[span_4](end_span)
+    -- Ô nhập ID nhạc
     local textBox = Instance.new("TextBox")
     textBox.Size = UDim2.new(0, 260, 0, 32)
     textBox.Position = UDim2.new(0.5, -130, 0.32, 0)
@@ -210,7 +188,7 @@ local function createBoomboxGUI()
 
     updateSavedList()
 
-    -- Nút Phát[span_5](start_span)[span_5](end_span)
+    -- Nút Phát
     local playButton = Instance.new("TextButton")
     playButton.Size = UDim2.new(0, 122, 0, 38)
     playButton.Position = UDim2.new(0.08, 0, 0.8, 0)
@@ -225,7 +203,7 @@ local function createBoomboxGUI()
     btnCorner1.CornerRadius = UDim.new(0, 8)
     btnCorner1.Parent = playButton
 
-    -- Nút Dừng[span_6](start_span)[span_6](end_span)
+    -- Nút Dừng
     local stopButton = Instance.new("TextButton")
     stopButton.Size = UDim2.new(0, 122, 0, 38)
     stopButton.Position = UDim2.new(0.52, 0, 0.8, 0)
@@ -240,14 +218,14 @@ local function createBoomboxGUI()
     btnCorner2.CornerRadius = UDim.new(0, 8)
     btnCorner2.Parent = stopButton
 
-    -- Logic Bật/Tắt Menu[span_7](start_span)[span_7](end_span)
+    -- Logic Bật/Tắt Menu khi bấm vào ToggleButton
     local menuOpen = true
     toggleButton.MouseButton1Click:Connect(function()
         menuOpen = not menuOpen
         frame.Visible = menuOpen
     end)
 
-    -- Event Handling Play/Stop và Tự động lưu ID
+    -- Event Handling Play/Stop và Tự động lưu ID qua RemoteEvent (Hoặc gắn trực tiếp vào nhân vật nếu chạy client-side hoàn toàn)
     playButton.MouseButton1Click:Connect(function()
         local id = tonumber(textBox.Text)
         if id then
@@ -261,21 +239,7 @@ local function createBoomboxGUI()
         remoteEvent:FireServer("Stop")
     end)
 
-    return screenGui, toggleButton, frame
+    return screenGui
 end
 
-local screenGui, toggleButton, frame = createBoomboxGUI()
-
-tool.Equipped:Connect(function()
-    toggleButton.Visible = true
-    frame.Visible = true
-end)
-
-tool.Unequipped:Connect(function()
-    toggleButton.Visible = false
-    frame.Visible = false
-    sound:Stop()
-end)
-
-tool.Parent = player:WaitForChild("Backpack")
-
+createBoomboxGUI()
