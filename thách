@@ -9,7 +9,7 @@ local player = Players.LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
 local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
 
--- Khởi tạo Sound phát nhạc trên Client (Giữ nguyên khi chết/respawn nhờ gắn vào PlayerGui hoặc tự động tái tạo)
+-- Khởi tạo Sound phát nhạc trên Client (Giữ nguyên khi chết/respawn)
 local function getOrCreateSound()
     local char = player.Character or player.CharacterAdded:Wait()
     local rootPart = char:WaitForChild("HumanoidRootPart")
@@ -28,7 +28,7 @@ end
 
 local sound = getOrCreateSound()
 
--- Đảm bảo khi nhân vật chết và hồi sinh (respawn), nhạc vẫn hoạt động bình thường mà không bị mất
+-- Đảm bảo khi nhân vật chết và hồi sinh, âm thanh không bị mất
 player.CharacterAdded:Connect(function(newChar)
     character = newChar
     humanoidRootPart = newChar:WaitForChild("HumanoidRootPart")
@@ -178,7 +178,7 @@ local function createBoomboxGUI()
 
     makeDraggable(toggleButton)
 
-    -- 3. Menu chính (Mở rộng thêm chiều cao để chứa các tính năng mới)
+    -- 3. Menu chính
     local frame = Instance.new("Frame")
     frame.Name = "MenuFrame"
     frame.Size = UDim2.new(0, 260, 0, 360)
@@ -306,9 +306,9 @@ local function createBoomboxGUI()
 
     updateSavedList()
 
-    -- --- CÁC TÍNH NĂNG MỚI (Tua, Lặp, Tốc độ, Âm lượng) ---
+    -- --- CÁC NÚT ĐIỀU KHIỂN ---
 
-    -- 1. Nút Phát & Lưu & Dừng
+    -- 1. Nút Phát & Dừng
     local playButton = Instance.new("TextButton")
     playButton.Size = UDim2.new(0, 105, 0, 30)
     playButton.Position = UDim2.new(0.09, 0, 0.55, 0)
@@ -337,7 +337,7 @@ local function createBoomboxGUI()
     btnCorner2.CornerRadius = UDim.new(0, 6)
     btnCorner2.Parent = stopButton
 
-    -- 2. Nút Tua nhanh (+5 giây) và Tua lùi (-5 giây)
+    -- 2. Nút Tua (-5s / +5s)
     local rewindButton = Instance.new("TextButton")
     rewindButton.Size = UDim2.new(0, 105, 0, 28)
     rewindButton.Position = UDim2.new(0.09, 0, 0.65, 0)
@@ -366,7 +366,7 @@ local function createBoomboxGUI()
     fwCorner.CornerRadius = UDim.new(0, 6)
     fwCorner.Parent = forwardButton
 
-    -- 3. Nút Lặp lại (Loop) & Tăng tốc độ (PlaybackSpeed)
+    -- 3. Nút Lặp & Tốc độ
     local loopButton = Instance.new("TextButton")
     loopButton.Size = UDim2.new(0, 105, 0, 28)
     loopButton.Position = UDim2.new(0.09, 0, 0.75, 0)
@@ -395,14 +395,14 @@ local function createBoomboxGUI()
     spdCorner.CornerRadius = UDim.new(0, 6)
     spdCorner.Parent = speedButton
 
-    -- 4. Điều chỉnh Âm lượng (Volume + / -)
+    -- 4. Điều chỉnh Âm lượng (ĐÃ SỬA RÕ RÀNG: GIẢM TIẾNG VÀ TĂNG TIẾNG)
     local volDownBtn = Instance.new("TextButton")
     volDownBtn.Size = UDim2.new(0, 105, 0, 28)
     volDownBtn.Position = UDim2.new(0.09, 0, 0.85, 0)
-    volDownBtn.Text = "🔉 Giảm âm lượng"
+    volDownBtn.Text = "🔉 Giảm tiếng (-)"
     volDownBtn.Font = Enum.Font.GothamBold
     volDownBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-    volDownBtn.BackgroundColor3 = Color3.fromRGB(40, 100, 80)
+    volDownBtn.BackgroundColor3 = Color3.fromRGB(160, 80, 40)
     volDownBtn.TextSize = 11
     volDownBtn.Parent = frame
 
@@ -413,10 +413,10 @@ local function createBoomboxGUI()
     local volUpBtn = Instance.new("TextButton")
     volUpBtn.Size = UDim2.new(0, 105, 0, 28)
     volUpBtn.Position = UDim2.new(0.53, 0, 0.85, 0)
-    volUpBtn.Text = "🔊 Tăng âm lượng"
+    volUpBtn.Text = "🔊 Tăng tiếng (+)"
     volUpBtn.Font = Enum.Font.GothamBold
     volUpBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-    volUpBtn.BackgroundColor3 = Color3.fromRGB(40, 100, 80)
+    volUpBtn.BackgroundColor3 = Color3.fromRGB(40, 120, 80)
     volUpBtn.TextSize = 11
     volUpBtn.Parent = frame
 
@@ -426,14 +426,12 @@ local function createBoomboxGUI()
 
     -- --- LOGIC XỬ LÝ SỰ KIỆN ---
 
-    -- Bật/Tắt Menu
     local menuOpen = true
     toggleButton.MouseButton1Click:Connect(function()
         menuOpen = not menuOpen
         frame.Visible = menuOpen
     end)
 
-    -- Phát nhạc
     playButton.MouseButton1Click:Connect(function()
         local id = tonumber(textBox.Text)
         if id then
@@ -446,26 +444,22 @@ local function createBoomboxGUI()
         end
     end)
 
-    -- Dừng nhạc
     stopButton.MouseButton1Click:Connect(function()
         sound:Stop()
     end)
 
-    -- Tua lùi 5 giây
     rewindButton.MouseButton1Click:Connect(function()
         if sound.IsLoaded then
             sound.TimePosition = math.max(0, sound.TimePosition - 5)
         end
     end)
 
-    -- Tua nhanh 5 giây
     forwardButton.MouseButton1Click:Connect(function()
         if sound.IsLoaded then
             sound.TimePosition = math.min(sound.TimeLength, sound.TimePosition + 5)
         end
     end)
 
-    -- Bật/Tắt Lặp lại (Loop)
     loopButton.MouseButton1Click:Connect(function()
         sound.Looped = not sound.Looped
         if sound.Looped then
@@ -477,7 +471,6 @@ local function createBoomboxGUI()
         end
     end)
 
-    -- Thay đổi tốc độ phát nhạc (0.5x -> 1.0x -> 1.5x -> 2.0x)
     local speeds = {0.5, 1.0, 1.25, 1.5, 2.0}
     local speedIndex = 2
     speedButton.MouseButton1Click:Connect(function()
@@ -488,16 +481,14 @@ local function createBoomboxGUI()
         speedButton.Text = "⚡ Tốc độ: " .. tostring(currentSpeed) .. "x"
     end)
 
-    -- Giảm âm lượng
     volDownBtn.MouseButton1Click:Connect(function()
         sound.Volume = math.max(0, sound.Volume - 0.5)
-        volDownBtn.Text = "🔉 Vol: " .. string.format("%.1f", sound.Volume)
+        volDownBtn.Text = "🔉 Giảm (" .. string.format("%.1f", sound.Volume) .. ")"
     end)
 
-    -- Tăng âm lượng
     volUpBtn.MouseButton1Click:Connect(function()
         sound.Volume = math.min(10, sound.Volume + 0.5)
-        volUpBtn.Text = "🔊 Vol: " .. string.format("%.1f", sound.Volume)
+        volUpBtn.Text = "🔊 Tăng (" .. string.format("%.1f", sound.Volume) .. ")"
     end)
 end
 
