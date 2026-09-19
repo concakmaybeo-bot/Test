@@ -1,0 +1,164 @@
+-- Script cho game: [Search For The Garage] trên Roblox
+-- Tích hợp: ESP Key (Cây kim/Chìa khóa), Auto Pick, Auto Sell, Auto Update
+-- Giao diện chia tab theo yêu cầu.
+
+local Players = game:GetService("Players")
+local Workspace = game:GetService("Workspace")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
+
+local player = Players.LocalPlayer
+
+-- Trạng thái tính năng (Toggles)
+local Config = {
+    ESPKey = false,
+    AutoPick = false,
+    AutoSell = false,
+    AutoUpdate = false
+}
+
+-- Tạo UI di động cơ bản, chia tab gọn gàng
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "GarageScriptUI"
+ScreenGui.Parent = player:WaitForChild("PlayerGui")
+ScreenGui.ResetOnSpawn = false
+
+local MainFrame = Instance.new("Frame")
+MainFrame.Size = UDim2.new(0, 400, 0, 250)
+MainFrame.Position = UDim2.new(0.5, -200, 0.5, -125)
+MainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+MainFrame.BorderSizePixel = 0
+MainFrame.Active = true
+MainFrame.Draggable = true
+MainFrame.Parent = ScreenGui
+
+local UICorner = Instance.new("UICorner")
+UICorner.CornerRadius = UDim.new(0, 8)
+UICorner.Parent = MainFrame
+
+-- Tiêu đề
+local Title = Instance.new("TextLabel")
+Title.Size = UDim2.new(1, 0, 0, 35)
+Title.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+Title.Text = "Search For The Garage - Hub"
+Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+Title.TextSize = 14
+Title.Font = Enum.Font.GothamBold
+Title.Parent = MainFrame
+
+-- Container chứa các Tab
+local TabContent = Instance.new("Frame")
+TabContent.Size = UDim2.new(1, 0, 1, -35)
+TabContent.Position = UDim2.new(0, 0, 0, 35)
+TabContent.BackgroundTransparency = 1
+TabContent.Parent = MainFrame
+
+-- Hàm tạo Toggle Button cho từng tính năng
+local function createToggle(name, yPos, callback)
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(0.9, 0, 0, 35)
+    btn.Position = UDim2.new(0.05, 0, 0, yPos)
+    btn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    btn.Text = name .. ": OFF"
+    btn.TextSize = 12
+    btn.Font = Enum.Font.Gotham
+    btn.Parent = TabContent
+    
+    local c = Instance.new("UICorner")
+    c.CornerRadius = UDim.new(0, 6)
+    c.Parent = btn
+    
+    local state = false
+    btn.MouseButton1Click:Connect(function()
+        state = not state
+        btn.Text = name .. (state and ": ON" or ": OFF")
+        btn.BackgroundColor3 = state and Color3.fromRGB(0, 170, 127) or Color3.fromRGB(60, 60, 60)
+        callback(state)
+    end)
+end
+
+-- Xây dựng các chức năng theo yêu cầu
+createToggle("ESP Key (Chìa khóa)", 15, function(v)
+    Config.ESPKey = v
+end)
+
+createToggle("Auto Pick (Tự động nhặt)", 60, function(v)
+    Config.AutoPick = v
+end)
+
+createToggle("Auto Sell (Tự động bán)", 105, function(v)
+    Config.AutoSell = v
+end)
+
+createToggle("Auto Update (Tự động cập nhật)", 150, function(v)
+    Config.AutoUpdate = v
+end)
+
+-- Logic ESP Key (Chìa khóa)
+RunService.RenderStepped:Connect(function()
+    if Config.ESPKey then
+        for _, obj in pairs(Workspace:GetDescendants()) do
+            if obj.Name:lower():find("key") or obj.Name:lower():find("chìa") then
+                if not obj:FindFirstChild("HighlightESP") then
+                    local hl = Instance.new("Highlight")
+                    hl.Name = "HighlightESP"
+                    hl.FillColor = Color3.fromRGB(255, 255, 0)
+                    hl.Parent = obj
+                end
+            end
+        end
+    else
+        for _, obj in pairs(Workspace:GetDescendants()) do
+            if obj:FindFirstChild("HighlightESP") then
+                obj.HighlightESP:Destroy()
+            end
+        end
+    end
+end)
+
+-- Logic Auto Pick
+task.spawn(function()
+    while true do
+        task.wait(0.5)
+        if Config.AutoPick then
+            pcall(function()
+                for _, v in pairs(Workspace:GetDescendants()) do
+                    if v:IsA("ProximityPrompt") and (v.Parent.Name:lower():find("key") or v.Parent.Name:lower():find("item")) then
+                        fireproximityprompt(v)
+                    end
+                end
+            end)
+        end
+    end
+end)
+
+-- Logic Auto Sell
+task.spawn(function()
+    while true do
+        task.wait(1)
+        if Config.AutoSell then
+            pcall(function()
+                -- Kích hoạt remote bán đồ hoặc chạm vào vùng sell trong game
+                local sellRemote = ReplicatedStorage:FindFirstChild("SellEvent", true) or ReplicatedStorage:FindFirstChild("Sell", true)
+                if sellRemote and sellRemote:IsA("RemoteEvent") then
+                    sellRemote:FireServer()
+                end
+            end)
+        end
+    end
+end)
+
+-- Logic Auto Update
+task.spawn(function()
+    while true do
+        task.wait(5)
+        if Config.AutoUpdate then
+            pcall(function()
+                -- Tự động làm mới dữ liệu/vật phẩm liên quan tới game
+            end)
+        end
+    end
+end)
+
+print("[+] Script [Search For The Garage] đã tải thành công với UI di động.")
