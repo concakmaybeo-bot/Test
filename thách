@@ -1,0 +1,281 @@
+-- Services
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local TweenService = game:GetService("TweenService")
+local RunService = game:GetService("RunService")
+local HttpService = game:GetService("HttpService")
+
+local player = Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+
+-- Remote Event setup
+local remoteEvent = ReplicatedStorage:FindFirstChild("BoomboxEvent")
+if not remoteEvent then
+    remoteEvent = Instance.new("RemoteEvent")
+    remoteEvent.Name = "BoomboxEvent"
+    remoteEvent.Parent = ReplicatedStorage
+end
+
+-- Create Tool
+local tool = Instance.new("Tool")
+tool.Name = "Boombox"
+tool.RequiresHandle = true
+
+-- Create Handle
+local handle = Instance.new("Part")
+handle.Name = "Handle"
+handle.Size = Vector3.new(1.5, 1, 0.8)
+handle.BrickColor = BrickColor.new("Really black")
+handle.Material = Enum.Material.SmoothPlastic
+handle.Parent = tool
+
+-- Add Sound
+local sound = Instance.new("Sound")
+sound.Name = "Music"
+sound.Volume = 2
+sound.RollOffMaxDistance = 100
+sound.RollOffMinDistance = 10
+sound.Parent = handle
+
+-- File Save/Load System
+local fileName = "BoomboxSavedIDs.json"
+
+local function loadSavedIDs()
+    if writefile and readfile and isfile then
+        if isfile(fileName) then
+            local success, data = pcall(function()
+                return HttpService:JSONDecode(readfile(fileName))
+            end)
+            if success and type(data) == "table" then
+                return data
+            end
+        end
+    end
+    return {}
+end
+
+local function saveID(id)
+    if writefile and HttpService then
+        local currentList = loadSavedIDs()
+        for _, v in ipairs(currentList) do
+            if v == id then return end
+        end
+        table.insert(currentList, id)
+        pcall(function()
+            writefile(fileName, HttpService:JSONEncode(currentList))
+        end)
+    end
+end
+
+-- GUI Creation with Rotating Neon Ring Effect on ToggleButton
+local function createBoomboxGUI()
+    local screenGui = player:WaitForChild("PlayerGui"):FindFirstChild("BoomboxGUI")
+    if screenGui then screenGui:Destroy() end
+
+    screenGui = Instance.new("ScreenGui")
+    screenGui.Name = "BoomboxGUI"
+    screenGui.ResetOnSpawn = false
+    screenGui.Parent = player.PlayerGui
+
+    -- Toggle Button chứa hiệu ứng vòng tròn xoay phát sáng (lấy cảm hứng từ ảnh mẫu)[span_0](start_span)[span_0](end_span)
+    local toggleButton = Instance.new("ImageButton")
+    toggleButton.Name = "ToggleButton"
+    toggleButton.Size = UDim2.new(0, 60, 0, 60)
+    toggleButton.Position = UDim2.new(0.02, 0, 0.4, 0)
+    toggleButton.BackgroundTransparency = 1
+    toggleButton.Image = "rbxassetid://6034818372" -- Icon chính giữa
+    toggleButton.Visible = false
+    toggleButton.Parent = screenGui
+
+    -- Vòng tròn hiệu ứng xoay (Neon Ring Effect giống hình mẫu)[span_1](start_span)[span_1](end_span)
+    local ringEffect = Instance.new("ImageLabel")
+    ringEffect.Name = "RingEffect"
+    ringEffect.Size = UDim2.new(1.4, 0, 1.4, 0)
+    ringEffect.Position = UDim2.new(-0.2, 0, -0.2, 0)
+    ringEffect.BackgroundTransparency = 1
+    ringEffect.Image = "rbxassetid://6023426915" -- Vòng sáng xoay
+    ringEffect.ImageColor3 = Color3.fromRGB(0, 170, 255)
+    ringEffect.Parent = toggleButton
+
+    -- Hiệu ứng xoay liên tục bằng RenderStepped
+    local rotationConnection
+    rotationConnection = RunService.RenderStepped:Connect(function(dt)
+        if ringEffect and ringEffect.Parent then
+            ringEffect.Rotation = ringEffect.Rotation + (45 * dt * 2) -- Tốc độ xoay
+        else
+            rotationConnection:Disconnect()
+        end
+    end)
+
+    -- Hiệu ứng phóng to thu nhỏ khi hover chuột vào ToggleButton
+    toggleButton.MouseEnter:Connect(function()
+        TweenService:Create(toggleButton, TweenInfo.new(0.2), {Size = UDim2.new(0, 68, 0, 68)}):Play()
+    end)
+    toggleButton.MouseLeave:Connect(function()
+        TweenService:Create(toggleButton, TweenInfo.new(0.2), {Size = UDim2.new(0, 60, 0, 60)}):Play()
+    end)
+
+    -- Menu chính[span_2](start_span)[span_2](end_span)
+    local frame = Instance.new("Frame")
+    frame.Name = "MenuFrame"
+    frame.Size = UDim2.new(0, 320, 0, 380)
+    frame.Position = UDim2.new(0.5, -160, 0.5, -190)
+    frame.BackgroundColor3 = Color3.fromRGB(10, 10, 15)
+    frame.BorderSizePixel = 0
+    frame.Visible = false
+    frame.Parent = screenGui
+
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 16)
+    corner.Parent = frame
+
+    local frameStroke = Instance.new("UIStroke")
+    frameStroke.Color = Color3.fromRGB(0, 130, 255)
+    frameStroke.Thickness = 2
+    frameStroke.Parent = frame
+
+    -- Khung hình tròn trung tâm trong menu[span_3](start_span)[span_3](end_span)
+    local circleArt = Instance.new("ImageLabel")
+    circleArt.Name = "CircleArt"
+    circleArt.Size = UDim2.new(0, 100, 0, 100)
+    circleArt.Position = UDim2.new(0.5, -50, 0.04, 0)
+    circleArt.BackgroundTransparency = 1
+    circleArt.Image = "rbxassetid://6023426915"
+    circleArt.Parent = frame
+
+    -- Ô nhập ID nhạc[span_4](start_span)[span_4](end_span)
+    local textBox = Instance.new("TextBox")
+    textBox.Size = UDim2.new(0, 260, 0, 32)
+    textBox.Position = UDim2.new(0.5, -130, 0.32, 0)
+    textBox.PlaceholderText = "Nhập ID Audio Roblox..."
+    textBox.Text = ""
+    textBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+    textBox.PlaceholderColor3 = Color3.fromRGB(150, 150, 150)
+    textBox.BackgroundColor3 = Color3.fromRGB(20, 25, 40)
+    textBox.TextSize = 13
+    textBox.Parent = frame
+
+    local textCorner = Instance.new("UICorner")
+    textCorner.CornerRadius = UDim.new(0, 6)
+    textCorner.Parent = textBox
+
+    -- ScrollingFrame chứa danh sách ID đã lưu
+    local scrollingFrame = Instance.new("ScrollingFrame")
+    scrollingFrame.Size = UDim2.new(0, 260, 0, 90)
+    scrollingFrame.Position = UDim2.new(0.5, -130, 0.44, 0)
+    scrollingFrame.BackgroundColor3 = Color3.fromRGB(15, 18, 28)
+    scrollingFrame.BorderSizePixel = 0
+    scrollingFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
+    scrollingFrame.ScrollBarThickness = 4
+    scrollingFrame.Parent = frame
+
+    local scrollCorner = Instance.new("UICorner")
+    scrollCorner.CornerRadius = UDim.new(0, 6)
+    scrollCorner.Parent = scrollingFrame
+
+    local uiListLayout = Instance.new("UIListLayout")
+    uiListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+    uiListLayout.Padding = UDim.new(0, 4)
+    uiListLayout.Parent = scrollingFrame
+
+    local function updateSavedList()
+        for _, child in ipairs(scrollingFrame:GetChildren()) do
+            if child:IsA("TextButton") then
+                child:Destroy()
+            end
+        end
+
+        local savedIDs = loadSavedIDs()
+        scrollingFrame.CanvasSize = UDim2.new(0, 0, 0, #savedIDs * 28)
+
+        for _, id in ipairs(savedIDs) do
+            local btn = Instance.new("TextButton")
+            btn.Size = UDim2.new(1, -4, 0, 24)
+            btn.BackgroundColor3 = Color3.fromRGB(30, 35, 55)
+            btn.Text = "🎵 ID: " .. tostring(id)
+            btn.TextColor3 = Color3.fromRGB(220, 220, 220)
+            btn.TextSize = 12
+            btn.Font = Enum.Font.Gotham
+            btn.Parent = scrollingFrame
+
+            local btnCorner = Instance.new("UICorner")
+            btnCorner.CornerRadius = UDim.new(0, 4)
+            btnCorner.Parent = btn
+
+            btn.MouseButton1Click:Connect(function()
+                textBox.Text = tostring(id)
+            end)
+        end
+    end
+
+    updateSavedList()
+
+    -- Nút Phát[span_5](start_span)[span_5](end_span)
+    local playButton = Instance.new("TextButton")
+    playButton.Size = UDim2.new(0, 122, 0, 38)
+    playButton.Position = UDim2.new(0.08, 0, 0.8, 0)
+    playButton.Text = "PHÁT & LƯU"
+    playButton.Font = Enum.Font.GothamBold
+    playButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    playButton.BackgroundColor3 = Color3.fromRGB(0, 140, 255)
+    playButton.TextSize = 13
+    playButton.Parent = frame
+
+    local btnCorner1 = Instance.new("UICorner")
+    btnCorner1.CornerRadius = UDim.new(0, 8)
+    btnCorner1.Parent = playButton
+
+    -- Nút Dừng[span_6](start_span)[span_6](end_span)
+    local stopButton = Instance.new("TextButton")
+    stopButton.Size = UDim2.new(0, 122, 0, 38)
+    stopButton.Position = UDim2.new(0.52, 0, 0.8, 0)
+    stopButton.Text = "DỪNG"
+    stopButton.Font = Enum.Font.GothamBold
+    stopButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    stopButton.BackgroundColor3 = Color3.fromRGB(200, 40, 40)
+    stopButton.TextSize = 13
+    stopButton.Parent = frame
+
+    local btnCorner2 = Instance.new("UICorner")
+    btnCorner2.CornerRadius = UDim.new(0, 8)
+    btnCorner2.Parent = stopButton
+
+    -- Logic Bật/Tắt Menu[span_7](start_span)[span_7](end_span)
+    local menuOpen = true
+    toggleButton.MouseButton1Click:Connect(function()
+        menuOpen = not menuOpen
+        frame.Visible = menuOpen
+    end)
+
+    -- Event Handling Play/Stop và Tự động lưu ID
+    playButton.MouseButton1Click:Connect(function()
+        local id = tonumber(textBox.Text)
+        if id then
+            saveID(id)
+            updateSavedList()
+            remoteEvent:FireServer("Play", id)
+        end
+    end)
+
+    stopButton.MouseButton1Click:Connect(function()
+        remoteEvent:FireServer("Stop")
+    end)
+
+    return screenGui, toggleButton, frame
+end
+
+local screenGui, toggleButton, frame = createBoomboxGUI()
+
+tool.Equipped:Connect(function()
+    toggleButton.Visible = true
+    frame.Visible = true
+end)
+
+tool.Unequipped:Connect(function()
+    toggleButton.Visible = false
+    frame.Visible = false
+    sound:Stop()
+end)
+
+tool.Parent = player:WaitForChild("Backpack")
+
