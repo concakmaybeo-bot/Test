@@ -9,7 +9,6 @@ local player = Players.LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
 local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
 
--- Khởi tạo Sound phát nhạc trên Client (Giữ nguyên khi chết/respawn)
 local function getOrCreateSound()
     local char = player.Character or player.CharacterAdded:Wait()
     local rootPart = char:WaitForChild("HumanoidRootPart")
@@ -34,7 +33,6 @@ player.CharacterAdded:Connect(function(newChar)
     sound = getOrCreateSound()
 end)
 
--- Hệ thống Lưu/Xóa ID nhạc qua file JSON
 local fileName = "BoomboxSavedIDs.json"
 
 local function loadSavedIDs()
@@ -79,7 +77,6 @@ local function removeID(idToRemove)
     end
 end
 
--- Hàm lấy tên bài hát tự động từ Roblox Marketplace
 local function getSongName(id)
     local success, info = pcall(function()
         return MarketplaceService:GetProductInfo(id)
@@ -90,7 +87,6 @@ local function getSongName(id)
     return "Không rõ tên (" .. tostring(id) .. ")"
 end
 
--- Hàm hỗ trợ kéo thả (Draggable) cho UI
 local function makeDraggable(guiObject)
     local dragging, dragInput, dragStart, startPos
 
@@ -127,7 +123,6 @@ local function makeDraggable(guiObject)
     end)
 end
 
--- Tạo Giao Diện Boombox
 local function createBoomboxGUI()
     local playerGui = player:WaitForChild("PlayerGui")
     local screenGui = playerGui:FindFirstChild("BoomboxGUI")
@@ -139,7 +134,6 @@ local function createBoomboxGUI()
     screenGui.DisplayOrder = 999
     screenGui.Parent = playerGui
 
-    -- 1. Watermark hiển thị khi nhập script
     local watermark = Instance.new("TextLabel")
     watermark.Name = "Watermark"
     watermark.Size = UDim2.new(0, 220, 0, 24)
@@ -156,7 +150,6 @@ local function createBoomboxGUI()
     wmCorner.CornerRadius = UDim.new(0, 6)
     wmCorner.Parent = watermark
 
-    -- 2. Toggle Button
     local toggleButton = Instance.new("ImageButton")
     toggleButton.Name = "ToggleButton"
     toggleButton.Size = UDim2.new(0, 48, 0, 48)
@@ -177,7 +170,6 @@ local function createBoomboxGUI()
 
     makeDraggable(toggleButton)
 
-    -- 3. Menu chính (Kích thước gọn gàng vừa vặn)
     local frame = Instance.new("Frame")
     frame.Name = "MenuFrame"
     frame.Size = UDim2.new(0, 260, 0, 380)
@@ -207,7 +199,6 @@ local function createBoomboxGUI()
 
     makeDraggable(frame)
 
-    -- --- THANH CHUYỂN ĐỔI TAB (TAB SYSTEM) ---
     local tabHolder = Instance.new("Frame")
     tabHolder.Size = UDim2.new(0, 240, 0, 32)
     tabHolder.Position = UDim2.new(0.5, -120, 0.03, 0)
@@ -244,7 +235,6 @@ local function createBoomboxGUI()
     thCorner.CornerRadius = UDim.new(0, 6)
     thCorner.Parent = tabHub
 
-    -- Khung chứa nội dung Tab 1 (Boombox)
     local musicContainer = Instance.new("Frame")
     musicContainer.Size = UDim2.new(1, 0, 0.82, 0)
     musicContainer.Position = UDim2.new(0, 0, 0.15, 0)
@@ -252,7 +242,6 @@ local function createBoomboxGUI()
     musicContainer.Visible = true
     musicContainer.Parent = frame
 
-    -- Khung chứa nội dung Tab 2 (Script Hub)
     local hubContainer = Instance.new("Frame")
     hubContainer.Size = UDim2.new(1, 0, 0.82, 0)
     hubContainer.Position = UDim2.new(0, 0, 0.15, 0)
@@ -260,7 +249,6 @@ local function createBoomboxGUI()
     hubContainer.Visible = false
     hubContainer.Parent = frame
 
-    -- Xử lý chuyển Tab khi bấm
     tabMusic.MouseButton1Click:Connect(function()
         musicContainer.Visible = true
         hubContainer.Visible = false
@@ -284,7 +272,6 @@ local function createBoomboxGUI()
     end)
 
 
-    -- --- NỘI DUNG TAB 1: MUSIC BOOMBOX ---
     local textBox = Instance.new("TextBox")
     textBox.Size = UDim2.new(0, 220, 0, 28)
     textBox.Position = UDim2.new(0.5, -110, 0.02, 0)
@@ -301,7 +288,6 @@ local function createBoomboxGUI()
     textCorner.CornerRadius = UDim.new(0, 6)
     textCorner.Parent = textBox
 
-    -- ScrollingFrame danh sách nhạc đã lưu
     local scrollingFrame = Instance.new("ScrollingFrame")
     scrollingFrame.Size = UDim2.new(0, 220, 0, 95)
     scrollingFrame.Position = UDim2.new(0.5, -110, 0.12, 0)
@@ -386,7 +372,6 @@ local function createBoomboxGUI()
 
     updateSavedList()
 
-    -- Các nút điều khiển nhạc trong Tab 1
     local playButton = Instance.new("TextButton")
     playButton.Size = UDim2.new(0, 105, 0, 30)
     playButton.Position = UDim2.new(0.09, 0, 0.45, 0)
@@ -508,7 +493,6 @@ local function createBoomboxGUI()
     vuCorner.Parent = volUpBtn
 
 
-    -- --- NỘI DUNG TAB 2: SCRIPT HUB (GỌN GÀNG KHÔNG BỊ TRÀN) ---
     local infYieldBtn = Instance.new("TextButton")
     infYieldBtn.Size = UDim2.new(0, 220, 0, 36)
     infYieldBtn.Position = UDim2.new(0.5, -110, 0.08, 0)
@@ -593,7 +577,6 @@ local function createBoomboxGUI()
     end)
 
 
-    -- --- LOGIC XỬ LÝ SỰ KIỆN CHÍNH ---
 
     local menuOpen = true
     toggleButton.MouseButton1Click:Connect(function()
