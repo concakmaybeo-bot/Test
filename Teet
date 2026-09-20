@@ -1,0 +1,143 @@
+-- [[ test ]]
+-- Script Autoplayer Basically FNF - Absolute Zero-Miss Ultra-Lite Version
+-- Direct position locking & instant note state cleanup
+
+local RunService = game:GetService("RunService")
+local VirtualInputManager = game:GetService("VirtualInputManager")
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+
+-- ABSOLUTE ZERO-MISS CONFIGURATION
+local AutoplayerEnabled = true
+
+local KeyMapping = {
+    ["Arrow1"] = Enum.KeyCode.A,
+    ["Arrow2"] = Enum.KeyCode.S,
+    ["Arrow3"] = Enum.KeyCode.W,
+    ["Arrow4"] = Enum.KeyCode.D
+}
+
+local currentSide = "KeySync1"
+local function getMyKeySync()
+    local playerGui = LocalPlayer:FindFirstChild("PlayerGui")
+    if not playerGui then return nil end
+    local main = playerGui:FindFirstChild("Main")
+    if not main then return nil end
+    local matchFrame = main:FindFirstChild("MatchFrame")
+    if not matchFrame then return nil end
+    return matchFrame:FindFirstChild(currentSide)
+end
+
+print("Script loaded by CHIẾN ĐO - Zero-Miss Lite Mode Activated")
+
+local Connections = {}
+
+local function startZeroMissThread(arrowName, keyCode)
+    if Connections[arrowName] then
+        Connections[arrowName]:Disconnect()
+    end
+    
+    Connections[arrowName] = RunService.RenderStepped:Connect(function()
+        if not AutoplayerEnabled then return end
+        
+        local MyKeySync = getMyKeySync()
+        if MyKeySync then
+            local arrowBase = MyKeySync:FindFirstChild(arrowName)
+            if arrowBase then
+                local notesFolder = arrowBase:FindFirstChild("Notes")
+                if notesFolder then
+                    local baseY = arrowBase.AbsolutePosition.Y
+                    
+                    for _, note in ipairs(notesFolder:GetChildren()) do
+                        if (note:IsA("ImageLabel") or note:IsA("Frame")) and not note:GetAttribute("Processed") then
+                            local noteY = note.AbsolutePosition.Y
+                            
+                            -- Zero-Miss Logic: Intercepts the moment the note crosses or reaches the receptor line
+                            if noteY <= baseY + 10 then
+                                note:SetAttribute("Processed", true)
+                                
+                                -- Immediate keystroke injection with zero lag window
+                                VirtualInputManager:SendKeyEvent(true, keyCode, false, game)
+                                task.spawn(function()
+                                    task.wait(0.02)
+                                    VirtualInputManager:SendKeyEvent(false, keyCode, false, game)
+                                    note:Destroy()
+                                end)
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end)
+end
+
+startZeroMissThread("Arrow1", KeyMapping["Arrow1"])
+startZeroMissThread("Arrow2", KeyMapping["Arrow2"])
+startZeroMissThread("Arrow3", KeyMapping["Arrow3"])
+startZeroMissThread("Arrow4", KeyMapping["Arrow4"])
+
+
+-- [[ MENU INTERFACE - BLACK & RED THEME ]]
+local ScreenGui = Instance.new("ScreenGui")
+local MainFrame = Instance.new("Frame")
+local Title = Instance.new("TextLabel")
+local ToggleBtn = Instance.new("TextButton")
+local SwitchSideBtn = Instance.new("TextButton")
+
+ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+ScreenGui.ResetOnSpawn = false
+
+MainFrame.Name = "ChienDoLiteMenu"
+MainFrame.Parent = ScreenGui
+MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+MainFrame.Position = UDim2.new(0.05, 0, 0.35, 0)
+MainFrame.Size = UDim2.new(0, 160, 0, 130)
+MainFrame.Active = true
+MainFrame.Draggable = true
+
+Title.Parent = MainFrame
+Title.BackgroundTransparency = 1
+Title.Size = UDim2.new(1, 0, 0.3, 0)
+Title.Text = "ZERO-MISS LITE"
+Title.TextColor3 = Color3.fromRGB(255, 40, 40)
+Title.TextSize = 13
+Title.Font = Enum.Font.SourceSansBold
+
+ToggleBtn.Parent = MainFrame
+ToggleBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+ToggleBtn.Position = UDim2.new(0.1, 0, 0.35, 0)
+ToggleBtn.Size = UDim2.new(0.8, 0, 0.25, 0)
+ToggleBtn.Text = "Autoplayer: ON"
+ToggleBtn.TextColor3 = Color3.fromRGB(0, 255, 100)
+
+ToggleBtn.MouseButton1Click:Connect(function()
+    AutoplayerEnabled = not AutoplayerEnabled
+    if AutoplayerEnabled then
+        ToggleBtn.Text = "Autoplayer: ON"
+        ToggleBtn.TextColor3 = Color3.fromRGB(0, 255, 100)
+    else
+        ToggleBtn.Text = "Autoplayer: OFF"
+        ToggleBtn.TextColor3 = Color3.fromRGB(255, 40, 40)
+        for _, keyCode in pairs(KeyMapping) do
+            VirtualInputManager:SendKeyEvent(false, keyCode, false, game)
+        end
+    end
+end)
+
+SwitchSideBtn.Parent = MainFrame
+SwitchSideBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+SwitchSideBtn.Position = UDim2.new(0.1, 0, 0.65, 0)
+SwitchSideBtn.Size = UDim2.new(0.8, 0, 0.25, 0)
+SwitchSideBtn.Text = "Playing: Left Side"
+SwitchSideBtn.TextColor3 = Color3.fromRGB(240, 240, 240)
+
+SwitchSideBtn.MouseButton1Click:Connect(function()
+    if currentSide == "KeySync1" then
+        currentSide = "KeySync2"
+        SwitchSideBtn.Text = "Playing: Right Side"
+    else
+        currentSide = "KeySync1"
+        SwitchSideBtn.Text = "Playing: Left Side"
+    end
+end)
