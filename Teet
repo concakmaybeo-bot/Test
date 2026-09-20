@@ -1,6 +1,3 @@
--- [[ MADE BY CHIẾN ĐO ]]
--- FNF Autoplayer Dual Mode (Pure Ultimate Speed + Lite) + Side Selection + Fix Lag
-
 local RunService = game:GetService("RunService")
 local VirtualInputManager = game:GetService("VirtualInputManager")
 local Players = game:GetService("Players")
@@ -183,7 +180,7 @@ local function createGUI()
     watermark.TextColor3 = Color3.fromRGB(255, 40, 40)
     watermark.TextSize = 12
     watermark.Font = Enum.Font.GothamBold
-    watermark.Text = "🔥 FNF DUAL MODE BY lol"
+    watermark.Text = "🌟 FNF REMIX AUTO PLAY MODE BY MANGO"
     watermark.Parent = screenGui
 
     local wmCorner = Instance.new("UICorner") wmCorner.CornerRadius = UDim.new(0, 6) wmCorner.Parent = watermark
@@ -258,12 +255,12 @@ local function createGUI()
     switchModeBtn.MouseButton1Click:Connect(function()
         if currentMode == "Ultimate" then
             currentMode = "Lite"
-            switchModeBtn.Text = "Mode: Lite (Hold Fix)"
+            switchModeBtn.Text = "Mode: Lite safe nó chỉ bị miss mấy note dài"
             switchModeBtn.TextColor3 = Color3.fromRGB(0, 220, 255)
             switchModeBtn.BackgroundColor3 = Color3.fromRGB(30, 70, 90)
         else
             currentMode = "Ultimate"
-            switchModeBtn.Text = "Mode: Ultimate Speed"
+            switchModeBtn.Text = "Mode: auto 100% có thể bị admin sờ gáy"
             switchModeBtn.TextColor3 = Color3.fromRGB(255, 220, 0)
             switchModeBtn.BackgroundColor3 = Color3.fromRGB(80, 70, 30)
         end
