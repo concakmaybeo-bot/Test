@@ -183,7 +183,7 @@ local function createGUI()
     watermark.TextColor3 = Color3.fromRGB(255, 40, 40)
     watermark.TextSize = 12
     watermark.Font = Enum.Font.GothamBold
-    watermark.Text = "🔥 FNF DUAL MODE BY CHIẾN ĐO"
+    watermark.Text = "🔥 FNF DUAL MODE BY lol"
     watermark.Parent = screenGui
 
     local wmCorner = Instance.new("UICorner") wmCorner.CornerRadius = UDim.new(0, 6) wmCorner.Parent = watermark
