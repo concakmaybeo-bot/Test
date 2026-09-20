@@ -1,5 +1,5 @@
 -- [[ MADE BY CHIẾN ĐO ]]
--- FNF Autoplayer Dual Mode (Ultimate Speed <-> Lite) + Side Selection + Fix Lag (Fixed Version)
+-- FNF Autoplayer Dual Mode (Pure Ultimate Speed + Lite) + Side Selection + Fix Lag
 
 local RunService = game:GetService("RunService")
 local VirtualInputManager = game:GetService("VirtualInputManager")
@@ -45,7 +45,7 @@ end
 
 -- CẤU HÌNH CHUNG
 local AutoplayerEnabled = true
-local HitThreshold = 45 -- Mở rộng phạm vi quét để bắt nốt chuẩn xác hơn
+local HitThreshold = 35 -- Chuẩn Ultimate Speed gốc
 local KeyMapping = {
     ["Arrow1"] = Enum.KeyCode.A,
     ["Arrow2"] = Enum.KeyCode.S,
@@ -57,19 +57,14 @@ local currentSide = "KeySync1"
 local currentMode = "Ultimate" -- "Ultimate" hoặc "Lite"
 
 local function getMyKeySync()
-    local playerGui = LocalPlayer:FindFirstChild("PlayerGui")
-    if not playerGui then return nil end
-    local main = playerGui:FindFirstChild("Main")
-    if not main then return nil end
-    local matchFrame = main:FindFirstChild("MatchFrame")
-    if not matchFrame then return nil end
-    return matchFrame:FindFirstChild(currentSide)
+    local MatchFrame = LocalPlayer:WaitForChild("PlayerGui"):WaitForChild("Main"):WaitForChild("MatchFrame")
+    return MatchFrame:FindFirstChild(currentSide)
 end
 
 local Connections = {}
 local activeHoldNotes = {}
 
--- THUẬT TOÁN TỐI ƯU CHO CẢ 2 CHẾ ĐỘ
+-- THUẬT TOÁN ĐỘC LẬP CHO TỪNG CHẾ ĐỘ
 local function startEngine(arrowName, keyCode)
     if Connections[arrowName] then
         Connections[arrowName]:Disconnect()
@@ -84,34 +79,45 @@ local function startEngine(arrowName, keyCode)
         if MyKeySync then
             local arrowBase = MyKeySync:FindFirstChild(arrowName)
             if arrowBase then
-                -- Tìm thư mục chứa nốt linh hoạt hơn (hỗ trợ cả Notes lẫn các tên khác)
-                local notesFolder = arrowBase:FindFirstChild("Notes") or arrowBase
-                local baseY = arrowBase.AbsolutePosition.Y
                 
-                -- 1. CHẾ ĐỘ ULTIMATE SPEED
+                -- ==========================================
+                -- 1. CHẾ ĐỘ ULTIMATE SPEED (Chuẩn code gốc của bạn)
+                -- ==========================================
                 if currentMode == "Ultimate" then
-                    for _, note in ipairs(notesFolder:GetChildren()) do
-                        if (note:IsA("ImageLabel") or note:IsA("Frame")) and note.Name ~= "Receptor" and not note:GetAttribute("Processed") then
-                            local noteY = note.AbsolutePosition.Y
-                            local diff = math.abs(noteY - baseY)
-                            
-                            if diff <= HitThreshold then
-                                note:SetAttribute("Processed", true)
-                                VirtualInputManager:SendKeyEvent(false, keyCode, false, game)
-                                VirtualInputManager:SendKeyEvent(true, keyCode, false, game)
+                    if arrowBase:FindFirstChild("Notes") then
+                        local currentNotes = arrowBase.Notes:GetChildren()
+                        
+                        for _, note in ipairs(currentNotes) do
+                            if (note:IsA("ImageLabel") or note:IsA("Frame")) and not note:GetAttribute("Processed") then
+                                local noteY = note.AbsolutePosition.Y
+                                local baseY = arrowBase.AbsolutePosition.Y
+                                local diff = math.abs(noteY - baseY)
                                 
-                                task.spawn(function()
-                                    task.wait(0.05)
+                                if diff <= HitThreshold then
+                                    note:SetAttribute("Processed", true)
+                                    
+                                    -- Force hit: thả phím cũ và nhấn phím mới với độ trễ 0ms
                                     VirtualInputManager:SendKeyEvent(false, keyCode, false, game)
-                                    pcall(function() note:Destroy() end)
-                                end)
+                                    VirtualInputManager:SendKeyEvent(true, keyCode, false, game)
+                                    
+                                    -- Dọn dẹp nốt đã đánh để tránh lặp
+                                    task.spawn(function()
+                                        task.wait(0.05)
+                                        pcall(function() note:Destroy() end)
+                                    end)
+                                end
                             end
                         end
                     end
                     
-                -- 2. CHẾ ĐỘ LITE (Tối ưu giữ nốt Hold Note)
+                -- ==========================================
+                -- 2. CHẾ ĐỘ LITE (Chuyên xử lý nốt giữ Hold Note)
+                -- ==========================================
                 elseif currentMode == "Lite" then
+                    local notesFolder = arrowBase:FindFirstChild("Notes") or arrowBase
+                    local baseY = arrowBase.AbsolutePosition.Y
                     local isHoldingNow = false
+                    
                     for _, note in ipairs(notesFolder:GetChildren()) do
                         if note:IsA("GuiObject") and note.Name ~= "Receptor" then
                             local noteY = note.AbsolutePosition.Y
@@ -121,15 +127,15 @@ local function startEngine(arrowName, keyCode)
                             local isLongNote = noteSizeY > 35 or note:FindFirstChild("Tail") or note:FindFirstChild("HoldBar") or note:FindFirstChild("Body") or note:FindFirstChild("Hold")
                             
                             if isLongNote then
-                                if noteY <= baseY + 35 and noteBottom >= baseY - 20 then
+                                if noteY <= baseY + 30 and noteBottom >= baseY - 15 then
                                     isHoldingNow = true
                                 end
                             else
-                                if not note:GetAttribute("Processed") and math.abs(noteY - baseY) <= HitThreshold then
+                                if not note:GetAttribute("Processed") and math.abs(noteY - baseY) <= 35 then
                                     note:SetAttribute("Processed", true)
                                     VirtualInputManager:SendKeyEvent(true, keyCode, false, game)
                                     task.spawn(function()
-                                        task.wait(0.05)
+                                        task.wait(0.04)
                                         VirtualInputManager:SendKeyEvent(false, keyCode, false, game)
                                         pcall(function() note:Destroy() end)
                                     end)
@@ -143,18 +149,20 @@ local function startEngine(arrowName, keyCode)
                         VirtualInputManager:SendKeyEvent(isHoldingNow, keyCode, false, game)
                     end
                 end
+                
             end
         end
     end)
 end
 
+-- KÍCH HOẠT CHO 4 NÚT
 startEngine("Arrow1", KeyMapping["Arrow1"])
 startEngine("Arrow2", KeyMapping["Arrow2"])
 startEngine("Arrow3", KeyMapping["Arrow3"])
 startEngine("Arrow4", KeyMapping["Arrow4"])
 
 
--- [[ GIAO DIỆN ĐIỀU KHIỂN ]]
+-- [[ GIAO DIỆN MENU ]]
 local function createGUI()
     local playerGui = LocalPlayer:WaitForChild("PlayerGui")
     local screenGui = playerGui:FindFirstChild("FNFAutoGUI")
