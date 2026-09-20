@@ -1,13 +1,51 @@
 -- [[ MADE BY CHIẾN ĐO ]]
--- Script Autoplayer Basically FNF - Hold Note & Zero-Miss Fixed Version
+-- FNF Autoplayer Dual Mode (Ultimate Speed <-> Lite) + Side Selection + Fix Lag
 
 local RunService = game:GetService("RunService")
 local VirtualInputManager = game:GetService("VirtualInputManager")
 local Players = game:GetService("Players")
+
 local LocalPlayer = Players.LocalPlayer
 
-local AutoplayerEnabled = true
+local function makeDraggable(guiObject)
+    local dragging, dragInput, dragStart, startPos
 
+    guiObject.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true
+            dragStart = input.Position
+            startPos = guiObject.Position
+
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then
+                    dragging = false
+                end
+            end)
+        end
+    end)
+
+    guiObject.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+            dragInput = input
+        end
+    end)
+
+    game:GetService("UserInputService").InputChanged:Connect(function(input)
+        if input == dragInput and dragging then
+            local delta = input.Position - dragStart
+            guiObject.Position = UDim2.new(
+                startPos.X.Scale,
+                startPos.X.Offset + delta.X,
+                startPos.Y.Scale,
+                startPos.Y.Offset + delta.Y
+            )
+        end
+    end)
+end
+
+-- CẤU HÌNH CHUNG
+local AutoplayerEnabled = true
+local HitThreshold = 35
 local KeyMapping = {
     ["Arrow1"] = Enum.KeyCode.A,
     ["Arrow2"] = Enum.KeyCode.S,
@@ -16,6 +54,8 @@ local KeyMapping = {
 }
 
 local currentSide = "KeySync1"
+local currentMode = "Ultimate" -- Mặc định là chế độ Ultimate Speed ("Ultimate" hoặc "Lite")
+
 local function getMyKeySync()
     local playerGui = LocalPlayer:FindFirstChild("PlayerGui")
     if not playerGui then return nil end
@@ -26,20 +66,16 @@ local function getMyKeySync()
     return matchFrame:FindFirstChild(currentSide)
 end
 
-print("Script loaded by CHIẾN ĐO - Hold Note Fixed Mode")
-
 local Connections = {}
-local activeHolds = {
-    [Enum.KeyCode.A] = false,
-    [Enum.KeyCode.S] = false,
-    [Enum.KeyCode.W] = false,
-    [Enum.KeyCode.D] = false
-}
+local activeHoldNotes = {}
 
-local function startFixedThread(arrowName, keyCode)
+-- THUẬT TOÁN CHẠY ĐỒNG THỜI CẢ 2 CHẾ ĐỘ
+local function startEngine(arrowName, keyCode)
     if Connections[arrowName] then
         Connections[arrowName]:Disconnect()
     end
+    
+    activeHoldNotes[arrowName] = {}
     
     Connections[arrowName] = RunService.RenderStepped:Connect(function()
         if not AutoplayerEnabled then return end
@@ -49,47 +85,63 @@ local function startFixedThread(arrowName, keyCode)
             local arrowBase = MyKeySync:FindFirstChild(arrowName)
             if arrowBase then
                 local notesFolder = arrowBase:FindFirstChild("Notes")
-                if notesFolder then
+                if notesFolder and notesFolder:IsA("Folder") then
                     local baseY = arrowBase.AbsolutePosition.Y
-                    local holdingAny = false
                     
-                    for _, note in ipairs(notesFolder:GetChildren()) do
-                        if note:IsA("ImageLabel") or note:IsA("Frame") then
-                            local noteY = note.AbsolutePosition.Y
-                            local sizeY = note.AbsoluteSize.Y
-                            
-                            -- Check if note is a hold note tail/body or a standard note
-                            local isHold = note:FindFirstChild("Tail") or note:FindFirstChild("HoldBar") or sizeY > 40
-                            
-                            if isHold then
-                                -- Hold note logic: Press when it reaches, keep holding until it passes the tail
-                                local tailY = noteY + sizeY
-                                if noteY <= baseY + 15 and tailY >= baseY - 10 then
-                                    holdingAny = true
-                                    if not activeHolds[keyCode] then
-                                        activeHolds[keyCode] = true
-                                        VirtualInputManager:SendKeyEvent(true, keyCode, false, game)
-                                    end
-                                end
-                            else
-                                -- Standard note logic with wider catch zone to eliminate misses
-                                if not note:GetAttribute("Processed") and math.abs(noteY - baseY) <= 25 then
+                    -- 1. CHẾ ĐỘ ULTIMATE SPEED
+                    if currentMode == "Ultimate" then
+                        for _, note in ipairs(notesFolder:GetChildren()) do
+                            if (note:IsA("ImageLabel") or note:IsA("Frame")) and not note:GetAttribute("Processed") then
+                                local noteY = note.AbsolutePosition.Y
+                                local diff = math.abs(noteY - baseY)
+                                
+                                if diff <= HitThreshold then
                                     note:SetAttribute("Processed", true)
+                                    VirtualInputManager:SendKeyEvent(false, keyCode, false, game)
                                     VirtualInputManager:SendKeyEvent(true, keyCode, false, game)
+                                    
                                     task.spawn(function()
-                                        task.wait(0.03)
+                                        task.wait(0.04)
                                         VirtualInputManager:SendKeyEvent(false, keyCode, false, game)
-                                        note:Destroy()
+                                        pcall(function() note:Destroy() end)
                                     end)
                                 end
                             end
                         end
-                    end
-                    
-                    -- Release key if no active hold note is currently covering the receptor
-                    if activeHolds[keyCode] and not holdingAny then
-                        activeHolds[keyCode] = false
-                        VirtualInputManager:SendKeyEvent(false, keyCode, false, game)
+                        
+                    -- 2. CHẾ ĐỘ LITE (Tối ưu giữ nốt Hold Note)
+                    elseif currentMode == "Lite" then
+                        local isHoldingNow = false
+                        for _, note in ipairs(notesFolder:GetChildren()) do
+                            if note:IsA("GuiObject") then
+                                local noteY = note.AbsolutePosition.Y
+                                local noteSizeY = note.AbsoluteSize.Y
+                                local noteBottom = noteY + noteSizeY
+                                
+                                local isLongNote = noteSizeY > 35 or note:FindFirstChild("Tail") or note:FindFirstChild("HoldBar") or note:FindFirstChild("Body") or note:FindFirstChild("Hold")
+                                
+                                if isLongNote then
+                                    if noteY <= baseY + 30 and noteBottom >= baseY - 15 then
+                                        isHoldingNow = true
+                                    end
+                                else
+                                    if not note:GetAttribute("Processed") and math.abs(noteY - baseY) <= 35 then
+                                        note:SetAttribute("Processed", true)
+                                        VirtualInputManager:SendKeyEvent(true, keyCode, false, game)
+                                        task.spawn(function()
+                                            task.wait(0.04)
+                                            VirtualInputManager:SendKeyEvent(false, keyCode, false, game)
+                                            pcall(function() note:Destroy() end)
+                                        end)
+                                    end
+                                end
+                            end
+                        end
+                        
+                        if isHoldingNow ~= activeHoldNotes[arrowName] then
+                            activeHoldNotes[arrowName] = isHoldingNow
+                            VirtualInputManager:SendKeyEvent(isHoldingNow, keyCode, false, game)
+                        end
                     end
                 end
             end
@@ -97,73 +149,178 @@ local function startFixedThread(arrowName, keyCode)
     end)
 end
 
-startFixedThread("Arrow1", KeyMapping["Arrow1"])
-startFixedThread("Arrow2", KeyMapping["Arrow2"])
-startFixedThread("Arrow3", KeyMapping["Arrow3"])
-startFixedThread("Arrow4", KeyMapping["Arrow4"])
+startEngine("Arrow1", KeyMapping["Arrow1"])
+startEngine("Arrow2", KeyMapping["Arrow2"])
+startEngine("Arrow3", KeyMapping["Arrow3"])
+startEngine("Arrow4", KeyMapping["Arrow4"])
 
 
--- [[ MENU INTERFACE ]]
-local ScreenGui = Instance.new("ScreenGui")
-local MainFrame = Instance.new("Frame")
-local Title = Instance.new("TextLabel")
-local ToggleBtn = Instance.new("TextButton")
-local SwitchSideBtn = Instance.new("TextButton")
+-- [[ TẠO GIAO DIỆN (MENU 4 NỨT CHỨC NĂNG) ]]
+local function createGUI()
+    local playerGui = LocalPlayer:WaitForChild("PlayerGui")
+    local screenGui = playerGui:FindFirstChild("FNFAutoGUI")
+    if screenGui then screenGui:Destroy() end
 
-ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
-ScreenGui.ResetOnSpawn = false
+    screenGui = Instance.new("ScreenGui")
+    screenGui.Name = "FNFAutoGUI"
+    screenGui.ResetOnSpawn = false
+    screenGui.DisplayOrder = 999
+    screenGui.Parent = playerGui
 
-MainFrame.Name = "ChienDoFixedMenu"
-MainFrame.Parent = ScreenGui
-MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
-MainFrame.Position = UDim2.new(0.05, 0, 0.35, 0)
-MainFrame.Size = UDim2.new(0, 160, 0, 130)
-MainFrame.Active = true
-MainFrame.Draggable = true
+    -- Watermark
+    local watermark = Instance.new("TextLabel")
+    watermark.Size = UDim2.new(0, 240, 0, 24)
+    watermark.Position = UDim2.new(0.01, 0, 0.01, 0)
+    watermark.BackgroundColor3 = Color3.fromRGB(15, 15, 25)
+    watermark.BackgroundTransparency = 0.4
+    watermark.TextColor3 = Color3.fromRGB(255, 40, 40)
+    watermark.TextSize = 12
+    watermark.Font = Enum.Font.GothamBold
+    watermark.Text = "🔥 FNF DUAL MODE BY CHIẾN ĐO"
+    watermark.Parent = screenGui
 
-Title.Parent = MainFrame
-Title.BackgroundTransparency = 1
-Title.Size = UDim2.new(1, 0, 0.3, 0)
-Title.Text = "HOLD FIX LITE"
-Title.TextColor3 = Color3.fromRGB(255, 40, 40)
-Title.TextSize = 13
-Title.Font = Enum.Font.SourceSansBold
+    local wmCorner = Instance.new("UICorner") wmCorner.CornerRadius = UDim.new(0, 6) wmCorner.Parent = watermark
 
-ToggleBtn.Parent = MainFrame
-ToggleBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-ToggleBtn.Position = UDim2.new(0.1, 0, 0.35, 0)
-ToggleBtn.Size = UDim2.new(0.8, 0, 0.25, 0)
-ToggleBtn.Text = "Autoplayer: ON"
-ToggleBtn.TextColor3 = Color3.fromRGB(0, 255, 100)
+    -- Nút tròn mở/đóng menu
+    local toggleButton = Instance.new("ImageButton")
+    toggleButton.Size = UDim2.new(0, 48, 0, 48)
+    toggleButton.Position = UDim2.new(0.02, 0, 0.35, 0)
+    toggleButton.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
+    toggleButton.Image = "rbxassetid://6034818372"
+    toggleButton.Parent = screenGui
 
-ToggleBtn.MouseButton1Click:Connect(function()
-    AutoplayerEnabled = not AutoplayerEnabled
-    if AutoplayerEnabled then
-        ToggleBtn.Text = "Autoplayer: ON"
-        ToggleBtn.TextColor3 = Color3.fromRGB(0, 255, 100)
-    else
-        ToggleBtn.Text = "Autoplayer: OFF"
-        ToggleBtn.TextColor3 = Color3.fromRGB(255, 40, 40)
-        for _, keyCode in pairs(KeyMapping) do
-            activeHolds[keyCode] = false
-            VirtualInputManager:SendKeyEvent(false, keyCode, false, game)
+    local toggleCorner = Instance.new("UICorner") toggleCorner.CornerRadius = UDim.new(1, 0) toggleCorner.Parent = toggleButton
+    local toggleStroke = Instance.new("UIStroke") toggleStroke.Color = Color3.fromRGB(255, 40, 40) toggleStroke.Thickness = 2 toggleStroke.Parent = toggleButton
+    makeDraggable(toggleButton)
+
+    -- Khung Menu (Tăng chiều cao lên chút để chứa đủ 4 nút)
+    local frame = Instance.new("Frame")
+    frame.Size = UDim2.new(0, 240, 0, 260)
+    frame.Position = UDim2.new(0.5, -120, 0.5, -130)
+    frame.BackgroundColor3 = Color3.fromRGB(15, 15, 25)
+    frame.BackgroundTransparency = 0.4 
+    frame.BorderSizePixel = 0
+    frame.Parent = screenGui
+
+    local corner = Instance.new("UICorner") corner.CornerRadius = UDim.new(0, 12) corner.Parent = frame
+    local frameStroke = Instance.new("UIStroke") frameStroke.Color = Color3.fromRGB(255, 40, 40) frameStroke.Thickness = 2 frameStroke.Parent = frame
+    makeDraggable(frame)
+
+    -- 1. Nút Bật/Tắt Autoplayer
+    local toggleAutoBtn = Instance.new("TextButton")
+    toggleAutoBtn.Size = UDim2.new(0, 200, 0, 36)
+    toggleAutoBtn.Position = UDim2.new(0.5, -100, 0.06, 0)
+    toggleAutoBtn.Text = "Autoplayer: ON"
+    toggleAutoBtn.Font = Enum.Font.GothamBold
+    toggleAutoBtn.TextColor3 = Color3.fromRGB(0, 255, 100)
+    toggleAutoBtn.BackgroundColor3 = Color3.fromRGB(40, 100, 60)
+    toggleAutoBtn.BackgroundTransparency = 0.2
+    toggleAutoBtn.TextSize = 12
+    toggleAutoBtn.Parent = frame
+    local taCorner = Instance.new("UICorner") taCorner.CornerRadius = UDim.new(0, 6) taCorner.Parent = toggleAutoBtn
+
+    toggleAutoBtn.MouseButton1Click:Connect(function()
+        AutoplayerEnabled = not AutoplayerEnabled
+        if AutoplayerEnabled then
+            toggleAutoBtn.Text = "Autoplayer: ON"
+            toggleAutoBtn.TextColor3 = Color3.fromRGB(0, 255, 100)
+            toggleAutoBtn.BackgroundColor3 = Color3.fromRGB(40, 100, 60)
+        else
+            toggleAutoBtn.Text = "Autoplayer: OFF"
+            toggleAutoBtn.TextColor3 = Color3.fromRGB(255, 40, 40)
+            toggleAutoBtn.BackgroundColor3 = Color3.fromRGB(120, 50, 50)
+            for _, keyCode in pairs(KeyMapping) do
+                VirtualInputManager:SendKeyEvent(false, keyCode, false, game)
+            end
         end
-    end
-end)
+    end)
 
-SwitchSideBtn.Parent = MainFrame
-SwitchSideBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-SwitchSideBtn.Position = UDim2.new(0.1, 0, 0.65, 0)
-SwitchSideBtn.Size = UDim2.new(0.8, 0, 0.25, 0)
-SwitchSideBtn.Text = "Playing: Left Side"
-SwitchSideBtn.TextColor3 = Color3.fromRGB(240, 240, 240)
+    -- 2. Nút Chuyển Chế Độ (Mode: Ultimate <-> Lite)
+    local switchModeBtn = Instance.new("TextButton")
+    switchModeBtn.Size = UDim2.new(0, 200, 0, 36)
+    switchModeBtn.Position = UDim2.new(0.5, -100, 0.29, 0)
+    switchModeBtn.Text = "Mode: Ultimate Speed"
+    switchModeBtn.Font = Enum.Font.GothamBold
+    switchModeBtn.TextColor3 = Color3.fromRGB(255, 220, 0)
+    switchModeBtn.BackgroundColor3 = Color3.fromRGB(80, 70, 30)
+    switchModeBtn.BackgroundTransparency = 0.2
+    switchModeBtn.TextSize = 12
+    switchModeBtn.Parent = frame
+    local smCorner = Instance.new("UICorner") smCorner.CornerRadius = UDim.new(0, 6) smCorner.Parent = switchModeBtn
 
-SwitchSideBtn.MouseButton1Click:Connect(function()
-    if currentSide == "KeySync1" then
-        currentSide = "KeySync2"
-        SwitchSideBtn.Text = "Playing: Right Side"
-    else
-        currentSide = "KeySync1"
-        SwitchSideBtn.Text = "Playing: Left Side"
-    end
-end)
+    switchModeBtn.MouseButton1Click:Connect(function()
+        if currentMode == "Ultimate" then
+            currentMode = "Lite"
+            switchModeBtn.Text = "Mode: Lite (Hold Fix)"
+            switchModeBtn.TextColor3 = Color3.fromRGB(0, 220, 255)
+            switchModeBtn.BackgroundColor3 = Color3.fromRGB(30, 70, 90)
+        else
+            currentMode = "Ultimate"
+            switchModeBtn.Text = "Mode: Ultimate Speed"
+            switchModeBtn.TextColor3 = Color3.fromRGB(255, 220, 0)
+            switchModeBtn.BackgroundColor3 = Color3.fromRGB(80, 70, 30)
+        end
+    end)
+
+    -- 3. Nút Chọn Bên (Left / Right Side)
+    local switchSideBtn = Instance.new("TextButton")
+    switchSideBtn.Size = UDim2.new(0, 200, 0, 36)
+    switchSideBtn.Position = UDim2.new(0.5, -100, 0.52, 0)
+    switchSideBtn.Text = "Playing: Left Side"
+    switchSideBtn.Font = Enum.Font.GothamBold
+    switchSideBtn.TextColor3 = Color3.fromRGB(240, 240, 240)
+    switchSideBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
+    switchSideBtn.BackgroundTransparency = 0.2
+    switchSideBtn.TextSize = 12
+    switchSideBtn.Parent = frame
+    local ssCorner = Instance.new("UICorner") ssCorner.CornerRadius = UDim.new(0, 6) ssCorner.Parent = switchSideBtn
+
+    switchSideBtn.MouseButton1Click:Connect(function()
+        if currentSide == "KeySync1" then
+            currentSide = "KeySync2"
+            switchSideBtn.Text = "Playing: Right Side"
+        else
+            currentSide = "KeySync1"
+            switchSideBtn.Text = "Playing: Left Side"
+        end
+    end)
+
+    -- 4. Nút Fix Lag (Xóa hiệu ứng)
+    local fixLagBtn = Instance.new("TextButton")
+    fixLagBtn.Size = UDim2.new(0, 200, 0, 36)
+    fixLagBtn.Position = UDim2.new(0.5, -100, 0.75, 0)
+    fixLagBtn.Text = "🚀 Fix Lag (Xóa hiệu ứng)"
+    fixLagBtn.Font = Enum.Font.GothamBold
+    fixLagBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    fixLagBtn.BackgroundColor3 = Color3.fromRGB(70, 50, 120)
+    fixLagBtn.BackgroundTransparency = 0.2
+    fixLagBtn.TextSize = 12
+    fixLagBtn.Parent = frame
+    local flCorner = Instance.new("UICorner") flCorner.CornerRadius = UDim.new(0, 6) flCorner.Parent = fixLagBtn
+
+    fixLagBtn.MouseButton1Click:Connect(function()
+        pcall(function()
+            for _, v in ipairs(game:GetDescendants()) do
+                if v:IsA("Part") or v:IsA("UnionOperation") or v:IsA("MeshPart") then
+                    v.Material = Enum.Material.SmoothPlastic
+                    v.Reflectance = 0
+                elseif v:IsA("Decal") or v:IsA("Texture") then
+                    v.Transparency = 1
+                elseif v:IsA("ParticleEmitter") or v:IsA("Trail") or v:IsA("Fire") or v:IsA("Smoke") then
+                    v.Enabled = false
+                end
+            end
+            settings().Rendering.QualityLevel = Enum.QualityLevel.Level01
+            fixLagBtn.Text = "✅ Đã xóa hiệu ứng thành công!"
+        end)
+    end)
+
+    -- Ẩn/Hiện menu khi bấm vào nút tròn
+    local menuOpen = true
+    toggleButton.MouseButton1Click:Connect(function()
+        menuOpen = not menuOpen
+        frame.Visible = menuOpen
+    end)
+end
+
+createGUI()
