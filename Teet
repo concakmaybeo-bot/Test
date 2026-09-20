@@ -1,13 +1,11 @@
--- [[ test ]]
--- Script Autoplayer Basically FNF - Absolute Zero-Miss Ultra-Lite Version
--- Direct position locking & instant note state cleanup
+-- [[ MADE BY CHIẾN ĐO ]]
+-- Script Autoplayer Basically FNF - Hold Note & Zero-Miss Fixed Version
 
 local RunService = game:GetService("RunService")
 local VirtualInputManager = game:GetService("VirtualInputManager")
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 
--- ABSOLUTE ZERO-MISS CONFIGURATION
 local AutoplayerEnabled = true
 
 local KeyMapping = {
@@ -28,11 +26,17 @@ local function getMyKeySync()
     return matchFrame:FindFirstChild(currentSide)
 end
 
-print("Script loaded by CHIẾN ĐO - Zero-Miss Lite Mode Activated")
+print("Script loaded by CHIẾN ĐO - Hold Note Fixed Mode")
 
 local Connections = {}
+local activeHolds = {
+    [Enum.KeyCode.A] = false,
+    [Enum.KeyCode.S] = false,
+    [Enum.KeyCode.W] = false,
+    [Enum.KeyCode.D] = false
+}
 
-local function startZeroMissThread(arrowName, keyCode)
+local function startFixedThread(arrowName, keyCode)
     if Connections[arrowName] then
         Connections[arrowName]:Disconnect()
     end
@@ -47,24 +51,45 @@ local function startZeroMissThread(arrowName, keyCode)
                 local notesFolder = arrowBase:FindFirstChild("Notes")
                 if notesFolder then
                     local baseY = arrowBase.AbsolutePosition.Y
+                    local holdingAny = false
                     
                     for _, note in ipairs(notesFolder:GetChildren()) do
-                        if (note:IsA("ImageLabel") or note:IsA("Frame")) and not note:GetAttribute("Processed") then
+                        if note:IsA("ImageLabel") or note:IsA("Frame") then
                             local noteY = note.AbsolutePosition.Y
+                            local sizeY = note.AbsoluteSize.Y
                             
-                            -- Zero-Miss Logic: Intercepts the moment the note crosses or reaches the receptor line
-                            if noteY <= baseY + 10 then
-                                note:SetAttribute("Processed", true)
-                                
-                                -- Immediate keystroke injection with zero lag window
-                                VirtualInputManager:SendKeyEvent(true, keyCode, false, game)
-                                task.spawn(function()
-                                    task.wait(0.02)
-                                    VirtualInputManager:SendKeyEvent(false, keyCode, false, game)
-                                    note:Destroy()
-                                end)
+                            -- Check if note is a hold note tail/body or a standard note
+                            local isHold = note:FindFirstChild("Tail") or note:FindFirstChild("HoldBar") or sizeY > 40
+                            
+                            if isHold then
+                                -- Hold note logic: Press when it reaches, keep holding until it passes the tail
+                                local tailY = noteY + sizeY
+                                if noteY <= baseY + 15 and tailY >= baseY - 10 then
+                                    holdingAny = true
+                                    if not activeHolds[keyCode] then
+                                        activeHolds[keyCode] = true
+                                        VirtualInputManager:SendKeyEvent(true, keyCode, false, game)
+                                    end
+                                end
+                            else
+                                -- Standard note logic with wider catch zone to eliminate misses
+                                if not note:GetAttribute("Processed") and math.abs(noteY - baseY) <= 25 then
+                                    note:SetAttribute("Processed", true)
+                                    VirtualInputManager:SendKeyEvent(true, keyCode, false, game)
+                                    task.spawn(function()
+                                        task.wait(0.03)
+                                        VirtualInputManager:SendKeyEvent(false, keyCode, false, game)
+                                        note:Destroy()
+                                    end)
+                                end
                             end
                         end
+                    end
+                    
+                    -- Release key if no active hold note is currently covering the receptor
+                    if activeHolds[keyCode] and not holdingAny then
+                        activeHolds[keyCode] = false
+                        VirtualInputManager:SendKeyEvent(false, keyCode, false, game)
                     end
                 end
             end
@@ -72,13 +97,13 @@ local function startZeroMissThread(arrowName, keyCode)
     end)
 end
 
-startZeroMissThread("Arrow1", KeyMapping["Arrow1"])
-startZeroMissThread("Arrow2", KeyMapping["Arrow2"])
-startZeroMissThread("Arrow3", KeyMapping["Arrow3"])
-startZeroMissThread("Arrow4", KeyMapping["Arrow4"])
+startFixedThread("Arrow1", KeyMapping["Arrow1"])
+startFixedThread("Arrow2", KeyMapping["Arrow2"])
+startFixedThread("Arrow3", KeyMapping["Arrow3"])
+startFixedThread("Arrow4", KeyMapping["Arrow4"])
 
 
--- [[ MENU INTERFACE - BLACK & RED THEME ]]
+-- [[ MENU INTERFACE ]]
 local ScreenGui = Instance.new("ScreenGui")
 local MainFrame = Instance.new("Frame")
 local Title = Instance.new("TextLabel")
@@ -88,7 +113,7 @@ local SwitchSideBtn = Instance.new("TextButton")
 ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
 ScreenGui.ResetOnSpawn = false
 
-MainFrame.Name = "ChienDoLiteMenu"
+MainFrame.Name = "ChienDoFixedMenu"
 MainFrame.Parent = ScreenGui
 MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
 MainFrame.Position = UDim2.new(0.05, 0, 0.35, 0)
@@ -99,7 +124,7 @@ MainFrame.Draggable = true
 Title.Parent = MainFrame
 Title.BackgroundTransparency = 1
 Title.Size = UDim2.new(1, 0, 0.3, 0)
-Title.Text = "ZERO-MISS LITE"
+Title.Text = "HOLD FIX LITE"
 Title.TextColor3 = Color3.fromRGB(255, 40, 40)
 Title.TextSize = 13
 Title.Font = Enum.Font.SourceSansBold
@@ -120,6 +145,7 @@ ToggleBtn.MouseButton1Click:Connect(function()
         ToggleBtn.Text = "Autoplayer: OFF"
         ToggleBtn.TextColor3 = Color3.fromRGB(255, 40, 40)
         for _, keyCode in pairs(KeyMapping) do
+            activeHolds[keyCode] = false
             VirtualInputManager:SendKeyEvent(false, keyCode, false, game)
         end
     end
