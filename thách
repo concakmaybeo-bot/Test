@@ -11,7 +11,6 @@ local player = Players.LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
 local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
 
--- Khởi tạo Sound phát nhạc trên Client (Giữ nguyên khi chết/respawn)
 local function getOrCreateSound()
     local char = player.Character or player.CharacterAdded:Wait()
     local rootPart = char:WaitForChild("HumanoidRootPart")
@@ -36,7 +35,6 @@ player.CharacterAdded:Connect(function(newChar)
     sound = getOrCreateSound()
 end)
 
--- Hệ thống Lưu/Xóa ID nhạc qua file JSON
 local fileName = "BoomboxSavedIDs.json"
 
 local function loadSavedIDs()
@@ -81,7 +79,6 @@ local function removeID(idToRemove)
     end
 end
 
--- Hàm lấy tên bài hát tự động từ Roblox Marketplace
 local function getSongName(id)
     local success, info = pcall(function()
         return MarketplaceService:GetProductInfo(id)
