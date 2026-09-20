@@ -260,7 +260,7 @@ local function createGUI()
             switchModeBtn.BackgroundColor3 = Color3.fromRGB(30, 70, 90)
         else
             currentMode = "Ultimate"
-            switchModeBtn.Text = "Mode: auto 100% có thể bị admin sờ gáy"
+            switchModeBtn.Text = "Mode: Ultimate speed có thể bị admin sờ gáy"
             switchModeBtn.TextColor3 = Color3.fromRGB(255, 220, 0)
             switchModeBtn.BackgroundColor3 = Color3.fromRGB(80, 70, 30)
         end
