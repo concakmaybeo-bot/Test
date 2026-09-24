@@ -1,3 +1,6 @@
+-- [[ MADE BY CHIẾN ĐO ]]
+-- FNF Autoplayer Dual Mode (Optimized & Lag-Free)
+
 local RunService = game:GetService("RunService")
 local VirtualInputManager = game:GetService("VirtualInputManager")
 local Players = game:GetService("Players")
@@ -42,7 +45,7 @@ end
 
 -- CẤU HÌNH CHUNG
 local AutoplayerEnabled = true
-local HitThreshold = 35 -- Chuẩn Ultimate Speed gốc
+local HitThreshold = 35
 local KeyMapping = {
     ["Arrow1"] = Enum.KeyCode.A,
     ["Arrow2"] = Enum.KeyCode.S,
@@ -54,14 +57,19 @@ local currentSide = "KeySync1"
 local currentMode = "Ultimate" -- "Ultimate" hoặc "Lite"
 
 local function getMyKeySync()
-    local MatchFrame = LocalPlayer:WaitForChild("PlayerGui"):WaitForChild("Main"):WaitForChild("MatchFrame")
-    return MatchFrame:FindFirstChild(currentSide)
+    local playerGui = LocalPlayer:FindFirstChild("PlayerGui")
+    if not playerGui then return nil end
+    local main = playerGui:FindFirstChild("Main")
+    if not main then return nil end
+    local matchFrame = main:FindFirstChild("MatchFrame")
+    if not matchFrame then return nil end
+    return matchFrame:FindFirstChild(currentSide)
 end
 
 local Connections = {}
 local activeHoldNotes = {}
 
--- THUẬT TOÁN ĐỘC LẬP CHO TỪNG CHẾ ĐỘ
+-- THUẬT TOÁN ĐƯỢC TỐI ƯU HÓA TRÁNH LAG
 local function startEngine(arrowName, keyCode)
     if Connections[arrowName] then
         Connections[arrowName]:Disconnect()
@@ -76,46 +84,41 @@ local function startEngine(arrowName, keyCode)
         if MyKeySync then
             local arrowBase = MyKeySync:FindFirstChild(arrowName)
             if arrowBase then
+                local notesFolder = arrowBase:FindFirstChild("Notes") or arrowBase
+                local baseY = arrowBase.AbsolutePosition.Y
                 
                 -- ==========================================
-                -- 1. CHẾ ĐỘ ULTIMATE SPEED (Chuẩn code gốc của bạn)
+                -- 1. CHẾ ĐỘ ULTIMATE SPEED (Thuần tốc độ cao, không rườm rà)
                 -- ==========================================
                 if currentMode == "Ultimate" then
-                    if arrowBase:FindFirstChild("Notes") then
-                        local currentNotes = arrowBase.Notes:GetChildren()
-                        
-                        for _, note in ipairs(currentNotes) do
-                            if (note:IsA("ImageLabel") or note:IsA("Frame")) and not note:GetAttribute("Processed") then
-                                local noteY = note.AbsolutePosition.Y
-                                local baseY = arrowBase.AbsolutePosition.Y
-                                local diff = math.abs(noteY - baseY)
+                    local notes = notesFolder:GetChildren()
+                    for i = 1, #notes do
+                        local note = notes[i]
+                        if (note:IsA("ImageLabel") or note:IsA("Frame")) and not note:GetAttribute("Processed") then
+                            local diff = math.abs(note.AbsolutePosition.Y - baseY)
+                            
+                            if diff <= HitThreshold then
+                                note:SetAttribute("Processed", true)
+                                VirtualInputManager:SendKeyEvent(false, keyCode, false, game)
+                                VirtualInputManager:SendKeyEvent(true, keyCode, false, game)
                                 
-                                if diff <= HitThreshold then
-                                    note:SetAttribute("Processed", true)
-                                    
-                                    -- Force hit: thả phím cũ và nhấn phím mới với độ trễ 0ms
+                                task.spawn(function()
+                                    task.wait(0.04)
                                     VirtualInputManager:SendKeyEvent(false, keyCode, false, game)
-                                    VirtualInputManager:SendKeyEvent(true, keyCode, false, game)
-                                    
-                                    -- Dọn dẹp nốt đã đánh để tránh lặp
-                                    task.spawn(function()
-                                        task.wait(0.05)
-                                        pcall(function() note:Destroy() end)
-                                    end)
-                                end
+                                    pcall(function() note:Destroy() end)
+                                end)
                             end
                         end
                     end
                     
                 -- ==========================================
-                -- 2. CHẾ ĐỘ LITE (Chuyên xử lý nốt giữ Hold Note)
+                -- 2. CHẾ ĐỘ LITE (Tối ưu xử lý hold note nhẹ nhàng)
                 -- ==========================================
                 elseif currentMode == "Lite" then
-                    local notesFolder = arrowBase:FindFirstChild("Notes") or arrowBase
-                    local baseY = arrowBase.AbsolutePosition.Y
                     local isHoldingNow = false
-                    
-                    for _, note in ipairs(notesFolder:GetChildren()) do
+                    local notes = notesFolder:GetChildren()
+                    for i = 1, #notes do
+                        local note = notes[i]
                         if note:IsA("GuiObject") and note.Name ~= "Receptor" then
                             local noteY = note.AbsolutePosition.Y
                             local noteSizeY = note.AbsoluteSize.Y
@@ -180,7 +183,7 @@ local function createGUI()
     watermark.TextColor3 = Color3.fromRGB(255, 40, 40)
     watermark.TextSize = 12
     watermark.Font = Enum.Font.GothamBold
-    watermark.Text = "🌟 FNF REMIX AUTO PLAY MODE BY MANGO"
+    watermark.Text = "🔥 FNF DUAL MODE BY CHIẾN ĐO"
     watermark.Parent = screenGui
 
     local wmCorner = Instance.new("UICorner") wmCorner.CornerRadius = UDim.new(0, 6) wmCorner.Parent = watermark
@@ -255,12 +258,12 @@ local function createGUI()
     switchModeBtn.MouseButton1Click:Connect(function()
         if currentMode == "Ultimate" then
             currentMode = "Lite"
-            switchModeBtn.Text = "Mode: Lite safe nó chỉ bị miss mấy note dài"
+            switchModeBtn.Text = "Mode: Lite (Hold Fix)"
             switchModeBtn.TextColor3 = Color3.fromRGB(0, 220, 255)
             switchModeBtn.BackgroundColor3 = Color3.fromRGB(30, 70, 90)
         else
             currentMode = "Ultimate"
-            switchModeBtn.Text = "Mode: Ultimate speed có thể bị admin sờ gáy"
+            switchModeBtn.Text = "Mode: Ultimate Speed"
             switchModeBtn.TextColor3 = Color3.fromRGB(255, 220, 0)
             switchModeBtn.BackgroundColor3 = Color3.fromRGB(80, 70, 30)
         end
@@ -289,11 +292,11 @@ local function createGUI()
         end
     end)
 
-    -- 4. Nút Fix Lag (Xóa hiệu ứng)
+    -- 4. Nút Fix Lag an toàn (Không làm đơ game đột ngột)
     local fixLagBtn = Instance.new("TextButton")
     fixLagBtn.Size = UDim2.new(0, 200, 0, 36)
     fixLagBtn.Position = UDim2.new(0.5, -100, 0.75, 0)
-    fixLagBtn.Text = "🚀 Fix Lag (Xóa hiệu ứng)"
+    fixLagBtn.Text = "🚀 Fix Lag (Tối ưu)"
     fixLagBtn.Font = Enum.Font.GothamBold
     fixLagBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
     fixLagBtn.BackgroundColor3 = Color3.fromRGB(70, 50, 120)
@@ -303,19 +306,16 @@ local function createGUI()
     local flCorner = Instance.new("UICorner") flCorner.CornerRadius = UDim.new(0, 6) flCorner.Parent = fixLagBtn
 
     fixLagBtn.MouseButton1Click:Connect(function()
-        pcall(function()
-            for _, v in ipairs(game:GetDescendants()) do
-                if v:IsA("Part") or v:IsA("UnionOperation") or v:IsA("MeshPart") then
-                    v.Material = Enum.Material.SmoothPlastic
-                    v.Reflectance = 0
-                elseif v:IsA("Decal") or v:IsA("Texture") then
-                    v.Transparency = 1
-                elseif v:IsA("ParticleEmitter") or v:IsA("Trail") or v:IsA("Fire") or v:IsA("Smoke") then
-                    v.Enabled = false
+        task.spawn(function()
+            pcall(function()
+                for _, v in ipairs(workspace:GetDescendants()) do
+                    if v:IsA("ParticleEmitter") or v:IsA("Trail") or v:IsA("Fire") or v:IsA("Smoke") then
+                        v.Enabled = false
+                    end
                 end
-            end
-            settings().Rendering.QualityLevel = Enum.QualityLevel.Level01
-            fixLagBtn.Text = "✅ Đã xóa hiệu ứng thành công!"
+                settings().Rendering.QualityLevel = Enum.QualityLevel.Level01
+                fixLagBtn.Text = "✅ Đã tối ưu mượt mà!"
+            end)
         end)
     end)
 
